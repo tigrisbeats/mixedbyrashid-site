@@ -7,10 +7,7 @@ export const PROJECT_UPLOAD_LIMIT_BYTES = 25 * 1024 ** 3;
 // from the business-level project quota so the storage provider can be
 // upgraded later without rewriting project rules.
 export const DROPBOX_PLUS_FILE_REQUEST_MAX_BYTES = 2 * 1024 ** 3;
-
-export const DEFAULT_RETENTION_DAYS = Number(
-  process.env.PORTAL_RETENTION_DAYS || 30
-);
+export const DEFAULT_RETENTION_DAYS = 30;
 
 export function safePathPart(value, fallback = 'Untitled') {
   const cleaned = String(value || '')

@@ -43,8 +43,16 @@ jobs:
           BASE="https://deploy-preview-12--mixedbyrashid.netlify.app"
           ready=0
 
-          for attempt in $(seq 1 18); do
-            code=$(curl -sS               -H "Origin: $BASE"               -H "Referer: $BASE/"               -H "Content-Type: application/json"               -o /tmp/checkout.json               -w "%{http_code}"               -X POST               --data '{"service":"studio","hours":2}'               "$BASE/api/create-checkout" || true)
+          for attempt in $(seq 1 8); do
+            code=$(curl -sS \
+              -H "Origin: $BASE" \
+              -H "Referer: $BASE/" \
+              -H "Content-Type: application/json" \
+              -o /tmp/checkout.json \
+              -w "%{http_code}" \
+              -X POST \
+              --data '{"service":"studio","hours":2}' \
+              "$BASE/api/create-checkout" || true)
 
             if [ "$code" = "200" ]; then
               ready=1

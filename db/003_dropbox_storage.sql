@@ -45,3 +45,6 @@ alter table portal_files
 
 create index if not exists portal_files_provider_path_idx
   on portal_files(provider_path);
+
+alter table portal_orders
+  add column if not exists completed_at timestamptz;

@@ -37,22 +37,22 @@ export default async (request) => {
   try {
     const sql = getDb();
 
-    const tableRows = await sql\`
+    const tableRows = await sql`
       select tablename
       from pg_catalog.pg_tables
       where schemaname = 'public'
-        and tablename = any(\${requiredTables})
-    \`;
+        and tablename = any(${requiredTables})
+    `;
 
     const presentTables = new Set(tableRows.map((row) => row.tablename));
     const missingTables = requiredTables.filter((name) => !presentTables.has(name));
 
-    const columnRows = await sql\`
+    const columnRows = await sql`
       select column_name
       from information_schema.columns
       where table_schema = 'public'
         and table_name = 'portal_orders'
-    \`;
+    `;
 
     const presentColumns = new Set(columnRows.map((row) => row.column_name));
     const missingColumns = requiredOrderColumns.filter((name) => !presentColumns.has(name));

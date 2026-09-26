@@ -24,7 +24,11 @@ export default async (request) => {
     const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/client';
     return redirect(safeNext);
   } catch (error) {
-    console.error('portal-login', error?.message || error);
+    const message = String(error?.message || '');
+    console.error('portal-login', message || error);
+    if (/confirm|verified|verification/i.test(message)) {
+      return redirect('/verify-email?login=unconfirmed');
+    }
     return redirect('/login?error=invalid');
   }
 };

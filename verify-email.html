@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verify Your Email | MixedByRashid</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="portal.css">
+<style>
+.verify-wrap{max-width:620px;margin:8vh auto}
+.verify-card{border:1px solid var(--line);border-radius:22px;padding:26px;background:#111116}
+.verify-icon{font-size:42px;margin-bottom:12px}
+.verify-list{margin:18px 0;padding-left:20px;color:var(--muted);line-height:1.7}
+.verify-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.verify-status{margin-top:16px;color:var(--muted)}
+.verify-status.good{color:#9cf0b6}.verify-status.error{color:#ff9b9b}
+</style>
+</head>
+<body class="portal-page">
+<nav class="portal-nav">
+  <div class="shell nav-inner">
+    <a class="brand" href="/">Mixed<span>By</span>Rashid</a>
+    <a class="btn secondary" href="/">Back Home</a>
+  </div>
+</nav>
+
+<main class="shell verify-wrap">
+  <section class="verify-card">
+    <div class="verify-icon" aria-hidden="true">✉️</div>
+    <div class="eyebrow">Client Portal</div>
+    <h1 id="title">Check your email.</h1>
+    <p id="copy">We sent you a verification link. Your account cannot log in until that email address is verified.</p>
+
+    <ul class="verify-list" id="tips">
+      <li>Check your inbox for the MixedByRashid account verification email.</li>
+      <li>If you do not see it, check Spam, Junk, Promotions, and All Mail.</li>
+      <li>Tap the verification link in that email. We will finish verification and send you into your client portal.</li>
+    </ul>
+
+    <div class="verify-status" id="status"></div>
+
+    <div class="verify-actions">
+      <a class="btn primary" id="loginLink" href="/login">Go to Login</a>
+      <a class="btn secondary" href="/">Back to MixedByRashid</a>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+const title=document.getElementById('title');
+const copy=document.getElementById('copy');
+const tips=document.getElementById('tips');
+const status=document.getElementById('status');
+const loginLink=document.getElementById('loginLink');
+
+function showSuccess(){
+  title.textContent='Email verified.';
+  copy.textContent='Your MixedByRashid account is verified and ready.';
+  tips.style.display='none';
+  status.textContent='Opening your client portal…';
+  status.className='verify-status good';
+  loginLink.textContent='Open Client Portal';
+  loginLink.href='/client';
+  setTimeout(()=>location.replace('/client'),1200);
+}
+
+function showError(){
+  title.textContent='We could not verify that link.';
+  copy.textContent='The verification link may be expired, already used, or incomplete.';
+  tips.style.display='none';
+  status.textContent='Try opening the newest verification email, or return to login if you already verified your account.';
+  status.className='verify-status error';
+}
+
+if(location.hash.includes('confirmation_token=')){
+  title.textContent='Verifying your email…';
+  copy.textContent='Hold tight for a second while we activate your account.';
+  tips.style.display='none';
+  status.textContent='Checking verification link…';
+
+  try{
+    const { handleAuthCallback } = await import('https://esm.sh/@netlify/identity@2.0.0');
+    const result = await handleAuthCallback();
+    if(result?.type==='confirmation'){
+      showSuccess();
+    }else{
+      showError();
+    }
+  }catch(error){
+    console.error('email-confirmation',error);
+    showError();
+  }
+}else if(new URLSearchParams(location.search).get('confirmed')==='1'){
+  showSuccess();
+}
+</script>
+</body>
+</html>

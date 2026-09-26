@@ -31,8 +31,11 @@
 <script>
 const q=new URLSearchParams(location.search);
 const s=document.getElementById('authStatus');
-if(q.get('created')==='1') s.textContent='Account created. Check your email to confirm it, then log in.';
-if(q.get('error')) s.textContent='That request could not be completed. Check your information and try again.';
+if(q.get('error')==='invalid') {
+  s.innerHTML='That email/password combination was not accepted. If you just created the account, <a href="/verify-email">verify your email first</a>.';
+} else if(q.get('error')) {
+  s.textContent='That request could not be completed. Please try again.';
+}
 </script>
 </body>
 </html>

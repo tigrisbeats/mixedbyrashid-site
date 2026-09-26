@@ -1,0 +1,25 @@
+name: Export Current Source
+
+on:
+  push:
+    branches: [ops/export-current-main]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current source
+        uses: actions/checkout@v4
+
+      - name: Package deploy source
+        uses: actions/upload-artifact@v4
+        with:
+          name: mixedbyrashid-current-source
+          path: |
+            .
+            !.git
+          include-hidden-files: true
+          retention-days: 1

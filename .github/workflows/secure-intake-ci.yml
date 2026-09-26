@@ -34,3 +34,12 @@ jobs:
           while IFS= read -r -d '' file; do
             node --check "$file"
           done < <(find netlify -type f -name '*.mjs' -print0)
+
+
+      - name: Diagnose production portal health
+        shell: bash
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/portal-health.json -w "%{http_code}" https://mixedbyrashid.netlify.app/api/portal-health || true)
+          echo "HTTP $code"
+          cat /tmp/portal-health.json 2>/dev/null || true

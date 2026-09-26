@@ -6,30 +6,44 @@ export function resolvePaymentRuntime(values = {}) {
   const context = String(values.CONTEXT || '').trim();
 
   if (context === 'deploy-preview') {
-    const enabled = bool(values.STRIPE_SANDBOX_ENABLED);
+    const checkoutEnabled = bool(values.STRIPE_SANDBOX_ENABLED);
+    const webhookEnabled = bool(values.STRIPE_SANDBOX_ENABLED);
     const secretKey = String(values.STRIPE_TEST_SECRET_KEY || '').trim();
     const signingSecret = String(values.STRIPE_PREVIEW_SIGNING_SECRET || '').trim();
+    const checkoutConfigured = Boolean(secretKey);
+    const webhookConfigured = Boolean(secretKey && signingSecret);
 
     return {
       context,
       mode: 'test',
-      enabled,
-      configured: Boolean(secretKey && signingSecret),
+      enabled: checkoutEnabled,
+      configured: checkoutConfigured,
+      checkoutEnabled,
+      checkoutConfigured,
+      webhookEnabled,
+      webhookConfigured,
       secretKey,
       signingSecret,
     };
   }
 
   if (context === 'production') {
-    const enabled = bool(values.PAYMENTS_ENABLED);
+    const checkoutEnabled = bool(values.PAYMENTS_ENABLED);
+    const webhookEnabled = bool(values.STRIPE_LIVE_WEBHOOK_ENABLED);
     const secretKey = String(values.STRIPE_LIVE_SECRET_KEY || '').trim();
     const signingSecret = String(values.STRIPE_LIVE_SIGNING_SECRET || '').trim();
+    const checkoutConfigured = Boolean(secretKey);
+    const webhookConfigured = Boolean(signingSecret);
 
     return {
       context,
       mode: 'live',
-      enabled,
-      configured: Boolean(secretKey && signingSecret),
+      enabled: checkoutEnabled,
+      configured: checkoutConfigured,
+      checkoutEnabled,
+      checkoutConfigured,
+      webhookEnabled,
+      webhookConfigured,
       secretKey,
       signingSecret,
     };
@@ -40,6 +54,10 @@ export function resolvePaymentRuntime(values = {}) {
     mode: 'disabled',
     enabled: false,
     configured: false,
+    checkoutEnabled: false,
+    checkoutConfigured: false,
+    webhookEnabled: false,
+    webhookConfigured: false,
     secretKey: '',
     signingSecret: '',
   };
@@ -53,6 +71,7 @@ export function paymentRuntimeConfig() {
   return resolvePaymentRuntime({
     CONTEXT: runtimeContext(),
     PAYMENTS_ENABLED: Netlify.env.get('PAYMENTS_ENABLED'),
+    STRIPE_LIVE_WEBHOOK_ENABLED: Netlify.env.get('STRIPE_LIVE_WEBHOOK_ENABLED'),
     STRIPE_SANDBOX_ENABLED: Netlify.env.get('STRIPE_SANDBOX_ENABLED'),
     STRIPE_TEST_SECRET_KEY: Netlify.env.get('STRIPE_TEST_SECRET_KEY'),
     STRIPE_PREVIEW_SIGNING_SECRET: Netlify.env.get('STRIPE_PREVIEW_SIGNING_SECRET'),

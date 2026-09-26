@@ -11,13 +11,13 @@ export default async (request) => {
 
   const runtime = paymentRuntimeConfig();
 
-  if (runtime.context !== 'deploy-preview' || !runtime.enabled) {
+  if (runtime.context !== 'deploy-preview' || !runtime.webhookEnabled) {
     return json(503, {
       error: 'Stripe preview webhook is disabled in this context.',
     });
   }
 
-  if (!runtime.configured) {
+  if (!runtime.webhookConfigured) {
     return json(503, {
       error: 'Stripe preview webhook is not fully configured.',
     });

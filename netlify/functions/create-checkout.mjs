@@ -36,7 +36,7 @@ export default async (request) => {
 
     const runtime = paymentRuntimeConfig();
 
-    if (!runtime.enabled) {
+    if (!runtime.checkoutEnabled) {
       return json(503, {
         error: runtime.context === 'production'
           ? 'Online payments are not enabled yet.'
@@ -44,7 +44,7 @@ export default async (request) => {
       });
     }
 
-    if (!runtime.configured) {
+    if (!runtime.checkoutConfigured) {
       return json(503, {
         error: runtime.context === 'production'
           ? 'Production payments are not fully configured.'

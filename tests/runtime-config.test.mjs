@@ -5,33 +5,35 @@ import {
   resolveStorageRuntime,
 } from '../netlify/lib/runtime-config.mjs';
 
-test('production payments require explicit enable flag and both live Stripe secrets', () => {
-  const disabled = resolvePaymentRuntime({
+test('production checkout and webhook have independent safety switches', () => {
+  const runtime = resolvePaymentRuntime({
     CONTEXT: 'production',
     PAYMENTS_ENABLED: 'false',
-    STRIPE_LIVE_SECRET_KEY: 'sk_live_example',
+    STRIPE_LIVE_WEBHOOK_ENABLED: 'true',
     STRIPE_LIVE_SIGNING_SECRET: 'whsec_example',
   });
-  assert.equal(disabled.mode, 'live');
-  assert.equal(disabled.enabled, false);
-  assert.equal(disabled.configured, true);
 
-  const missingSecret = resolvePaymentRuntime({
+  assert.equal(runtime.mode, 'live');
+  assert.equal(runtime.checkoutEnabled, false);
+  assert.equal(runtime.checkoutConfigured, false);
+  assert.equal(runtime.webhookEnabled, true);
+  assert.equal(runtime.webhookConfigured, true);
+  assert.equal(runtime.enabled, false);
+  assert.equal(runtime.configured, false);
+});
+
+test('production custom checkout only requires its live API key', () => {
+  const runtime = resolvePaymentRuntime({
     CONTEXT: 'production',
     PAYMENTS_ENABLED: 'true',
     STRIPE_LIVE_SECRET_KEY: 'sk_live_example',
+    STRIPE_LIVE_WEBHOOK_ENABLED: 'false',
   });
-  assert.equal(missingSecret.enabled, true);
-  assert.equal(missingSecret.configured, false);
 
-  const ready = resolvePaymentRuntime({
-    CONTEXT: 'production',
-    PAYMENTS_ENABLED: 'true',
-    STRIPE_LIVE_SECRET_KEY: 'sk_live_example',
-    STRIPE_LIVE_SIGNING_SECRET: 'whsec_example',
-  });
-  assert.equal(ready.enabled, true);
-  assert.equal(ready.configured, true);
+  assert.equal(runtime.checkoutEnabled, true);
+  assert.equal(runtime.checkoutConfigured, true);
+  assert.equal(runtime.webhookEnabled, false);
+  assert.equal(runtime.webhookConfigured, false);
 });
 
 test('deploy preview Stripe remains isolated behind sandbox flag', () => {
@@ -42,8 +44,10 @@ test('deploy preview Stripe remains isolated behind sandbox flag', () => {
     STRIPE_PREVIEW_SIGNING_SECRET: 'whsec_preview',
   });
   assert.equal(preview.mode, 'test');
-  assert.equal(preview.enabled, true);
-  assert.equal(preview.configured, true);
+  assert.equal(preview.checkoutEnabled, true);
+  assert.equal(preview.checkoutConfigured, true);
+  assert.equal(preview.webhookEnabled, true);
+  assert.equal(preview.webhookConfigured, true);
 });
 
 test('non-payment contexts stay disabled even when keys are present', () => {
@@ -53,8 +57,10 @@ test('non-payment contexts stay disabled even when keys are present', () => {
     STRIPE_LIVE_SECRET_KEY: 'sk_live_example',
     STRIPE_LIVE_SIGNING_SECRET: 'whsec_example',
   });
-  assert.equal(runtime.enabled, false);
-  assert.equal(runtime.configured, false);
+  assert.equal(runtime.checkoutEnabled, false);
+  assert.equal(runtime.checkoutConfigured, false);
+  assert.equal(runtime.webhookEnabled, false);
+  assert.equal(runtime.webhookConfigured, false);
   assert.equal(runtime.mode, 'disabled');
 });
 

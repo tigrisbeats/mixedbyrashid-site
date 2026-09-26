@@ -47,11 +47,11 @@ export default async (request) => {
 
   const runtime = paymentRuntimeConfig();
 
-  if (runtime.context !== 'production' || !runtime.enabled) {
+  if (runtime.context !== 'production' || !runtime.webhookEnabled) {
     return json(503, { error: 'Production Stripe webhook is disabled in this context.' });
   }
 
-  if (!runtime.configured) {
+  if (!runtime.webhookConfigured) {
     return json(503, { error: 'Production Stripe webhook is not fully configured.' });
   }
 

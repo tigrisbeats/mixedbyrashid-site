@@ -18,14 +18,23 @@ jobs:
           BASE="https://mixedbyrashid.netlify.app"
 
           ready=0
-          for attempt in $(seq 1 18); do
+          for attempt in $(seq 1 12); do
             code=$(curl -sS -o /tmp/portal-health.json -w "%{http_code}" "$BASE/api/portal-health" || true)
             if [ "$code" = "200" ]; then
               ready=1
               break
             fi
+
             echo "Portal health attempt $attempt returned HTTP $code"
             cat /tmp/portal-health.json 2>/dev/null || true
+
+            if [ "$attempt" = "2" ]; then
+              echo "Applying fixed portal schema migration."
+              migration_code=$(curl -sS -X POST -o /tmp/portal-migration.json -w "%{http_code}" "$BASE/api/portal-schema-apply" || true)
+              echo "Migration HTTP $migration_code"
+              cat /tmp/portal-migration.json 2>/dev/null || true
+            fi
+
             sleep 10
           done
 

@@ -1,5 +1,17 @@
 /book       /booking.html           200
 /mixing     /mixing-intake.html     200
 /mastering  /mastering-intake.html  200
+/client     /client-dashboard.html  200
+/admin      /admin-dashboard.html   200
+/review     /mix-review.html        200
+/royalties  /royalty-agreement.html 200
 /policies   /policies.html          200
 /beats      /beats.html             200
+
+/api/projects          /.netlify/functions/projects          200
+/api/project-storage   /.netlify/functions/project-storage   200
+/api/project-files     /.netlify/functions/project-files     200
+/api/project-download  /.netlify/functions/project-download  200
+/api/project-review    /.netlify/functions/project-review    200
+/api/create-checkout   /.netlify/functions/create-checkout   200
+/api/stripe-preview    /.netlify/functions/stripe-preview-webhook  200

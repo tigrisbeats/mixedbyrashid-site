@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project Dashboard | MixedByRashid</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="portal.css">
+</head>
+<body class="portal-page">
+<nav class="portal-nav"><div class="shell nav-inner"><a class="brand" href="index.html">Mixed<span>By</span>Rashid</a><a class="btn secondary" href="index.html">Back Home</a></div></nav>
+<main class="shell portal-main">
+  <header class="portal-header">
+    <div>
+      <div class="eyebrow">Client Portal</div>
+      <h1>Project Dashboard</h1>
+      <p>Everything for this project lives here: payment status, private files, revisions, credits, royalty paperwork, and final delivery.</p>
+    </div>
+    <div class="portal-actions">
+      <span class="chip success"><span class="dot success"></span>Payment verified</span>
+      <span class="chip">Mixing + Mastering</span>
+    </div>
+  </header>
+
+  <section class="status-grid" aria-label="Project summary">
+    <article class="status-card"><span class="status-label">Payment</span><div class="status-value"><span class="dot success"></span>Paid</div><p class="status-note">Order verified and ready for service.</p></article>
+    <article class="status-card"><span class="status-label">Project</span><div class="status-value"><span class="dot warning"></span>In progress</div><p class="status-note">Your project is actively being worked.</p></article>
+    <article class="status-card"><span class="status-label">Files</span><div class="status-value"><span class="dot success"></span>Private</div><p class="status-note">Source files and versions stay with this project.</p></article>
+    <article class="status-card"><span class="status-label">Final delivery</span><div class="status-value"><span class="dot warning"></span>Locked</div><p class="status-note">Royalty agreement is not fully executed yet.</p></article>
+  </section>
+
+  <section class="portal-grid">
+    <div class="portal-stack">
+      <article class="portal-panel next-action">
+        <div class="status-label">What happens next</div>
+        <h2>MixedByRashid needs to finish the royalty agreement.</h2>
+        <p>Your royalty information and signature are already complete. Final delivery unlocks after MixedByRashid reviews and signs the agreement.</p>
+        <a class="btn" href="royalty-agreement.html">View Royalty & Credits</a>
+      </article>
+
+      <article class="portal-panel">
+        <div class="section-kicker">Progress</div>
+        <h2>Project timeline</h2>
+        <div class="timeline">
+          <div class="timeline-step complete"><div class="timeline-mark">✓</div><div class="timeline-copy"><strong>Payment verified</strong><small>Your order is confirmed.</small></div></div>
+          <div class="timeline-step complete"><div class="timeline-mark">✓</div><div class="timeline-copy"><strong>Files received</strong><small>Source files and references are attached to this project.</small></div></div>
+          <div class="timeline-step active"><div class="timeline-mark">3</div><div class="timeline-copy"><strong>Mixing & mastering in progress</strong><small>Current working stage.</small></div></div>
+          <div class="timeline-step"><div class="timeline-mark">4</div><div class="timeline-copy"><strong>Final delivery</strong><small>Unlocks when required project steps are complete.</small></div></div>
+        </div>
+      </article>
+
+      <article class="portal-panel">
+        <div class="section-kicker">Files & versions</div>
+        <h2>Project workspace</h2>
+        <p>Your stems, references, mix versions, revisions, and final files stay connected to this project instead of getting scattered across email and text threads.</p>
+        <div class="action-list">
+          <div class="action-card"><div><strong>Source files & references</strong><small>Private project storage</small></div><a class="btn secondary" href="mixing-intake.html">Open workspace</a></div>
+          <div class="action-card"><div><strong>Mix review & A/B</strong><small>Compare the rough mix to the current version, leave timestamped notes, and approve the final mix</small></div><a class="btn secondary" href="mix-review.html">Open review</a></div>
+          <div class="action-card locked"><div><strong>Final delivery</strong><small>Locked until required agreement steps are complete</small></div><button class="btn secondary" type="button" disabled>Locked</button></div>
+        </div>
+      </article>
+    </div>
+
+    <aside class="portal-stack">
+      <article class="portal-panel">
+        <div class="section-kicker">Royalty & credits</div>
+        <h3>Agreement status</h3>
+        <div class="detail-list">
+          <div class="detail-row"><span>Participation</span><strong>Required</strong></div>
+          <div class="detail-row"><span>Client info</span><strong>Submitted</strong></div>
+          <div class="detail-row"><span>Client signature</span><strong>Complete</strong></div>
+          <div class="detail-row"><span>MixedByRashid signature</span><strong>Pending</strong></div>
+          <div class="detail-row"><span>Agreement</span><strong>Pending MixedByRashid</strong></div>
+        </div>
+      </article>
+
+      <article class="portal-panel">
+        <div class="section-kicker">Revisions</div>
+        <h3>2 revisions included</h3>
+        <div class="mini-grid">
+          <div class="mini-card"><span>Used</span><strong>0</strong></div>
+          <div class="mini-card"><span>Remaining</span><strong>2</strong></div>
+        </div>
+        <p style="margin-top:14px">Timestamped notes and version history stay attached to the project. Once a mix is approved, client revisions close unless review is reopened.</p>
+        <a class="btn secondary" href="mix-review.html">Review current mix</a>
+      </article>
+
+      <article class="portal-panel">
+        <div class="section-kicker">Release info</div>
+        <h3>Credits & metadata</h3>
+        <div class="detail-list">
+          <div class="detail-row"><span>Artist</span><strong>Project artist</strong></div>
+          <div class="detail-row"><span>Song</span><strong>Project title</strong></div>
+          <div class="detail-row"><span>Credit</span><strong>Mixed by Rashid</strong></div>
+          <div class="detail-row"><span>ISRC / UPC</span><strong>Not added yet</strong></div>
+        </div>
+      </article>
+    </aside>
+  </section>
+
+  <div class="portal-note"><strong>Preview state:</strong> this screen is showing the approved workflow with sample project data. Live order, file, signature, review, and delivery data will replace these sample values when the backend wiring is connected.</div>
+</main>
+</body>
+</html>

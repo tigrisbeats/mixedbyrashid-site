@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mix Review | MixedByRashid</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="portal.css">
+<style>
+.review-grid{display:grid;grid-template-columns:1.4fr .8fr;gap:16px}.review-player{display:grid;gap:14px}.ab-switch{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ab-side{border:1px solid var(--line);border-radius:18px;padding:16px;background:#0d0d11}.ab-side.active{border-color:#fff}.ab-side label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#92929d;font-weight:900;margin-bottom:8px}.ab-side select,.note-input{width:100%;background:#111117;border:1px solid var(--line);color:#fff;border-radius:12px;padding:11px}.ab-side audio{width:100%;margin-top:12px}.review-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.review-toolbar .btn{min-height:42px}.review-status{color:var(--muted);font-size:13px}.note-compose{display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:center}.time-pill{border:1px solid var(--line);background:#0d0d11;border-radius:12px;padding:11px;text-align:center;font-variant-numeric:tabular-nums}.version-list,.note-list{display:grid;gap:9px}.version-row,.note-row{border:1px solid var(--line);border-radius:14px;padding:12px;background:#0d0d11}.version-row strong,.note-row strong{display:block}.version-row small,.note-row small{color:var(--muted)}.note-row .timecode{display:inline-block;margin-right:8px;color:#fff;font-weight:900}.approval-box{border:1px solid rgba(142,240,176,.35);background:rgba(142,240,176,.07);border-radius:18px;padding:18px}.approval-box.approved{background:rgba(142,240,176,.14)}@media(max-width:900px){.review-grid{grid-template-columns:1fr}}@media(max-width:650px){.note-compose{grid-template-columns:1fr}.ab-switch{grid-template-columns:1fr}}
+</style>
+</head>
+<body class="portal-page">
+<nav class="portal-nav"><div class="shell nav-inner"><a class="brand" href="index.html">Mixed<span>By</span>Rashid</a><a class="btn secondary" href="client-dashboard.html">Project Dashboard</a></div></nav>
+<main class="shell portal-main">
+  <header class="portal-header">
+    <div><div class="eyebrow">Client Review</div><h1>Hear the difference.</h1><p>A is the client's rough mix. B is the current MixedByRashid version. Leave notes at exact timestamps, compare versions, then approve when the mix is right.</p></div>
+    <div class="portal-actions"><span class="chip" id="modeChip">Review open</span><span class="chip success" id="levelChip">Level match on</span></div>
+  </header>
+
+  <section class="review-grid">
+    <div class="portal-stack">
+      <article class="portal-panel review-player">
+        <div class="section-kicker">A / B comparison</div>
+        <div class="ab-switch">
+          <div class="ab-side active" id="sideA"><label for="roughSelect">A · Client rough mix</label><select id="roughSelect"><option value="">Choose rough mix</option></select><audio id="audioA" controls preload="metadata"></audio></div>
+          <div class="ab-side" id="sideB"><label for="mixSelect">B · MixedByRashid version</label><select id="mixSelect"><option value="">Choose mix version</option></select><audio id="audioB" controls preload="metadata"></audio></div>
+        </div>
+        <div class="review-toolbar">
+          <button class="btn" type="button" id="switchA">Hear A</button>
+          <button class="btn" type="button" id="switchB">Hear B</button>
+          <button class="btn secondary" type="button" id="levelToggle">Level match: On</button>
+          <span class="review-status" id="levelStatus">RMS-based matching lowers the louder file for a fairer comparison.</span>
+        </div>
+      </article>
+
+      <article class="portal-panel">
+        <div class="section-kicker">Timestamped notes</div><h2>Say exactly where.</h2><p>Play the B version, stop at the spot you want changed, and add the note. No more “around the second verse somewhere.”</p>
+        <div class="note-compose"><div class="time-pill" id="noteTime">00:00.000</div><input class="note-input" id="noteText" maxlength="2000" placeholder="Bring the lead vocal up 1 dB here…"><button class="btn" type="button" id="addNote">Add note</button></div>
+        <div class="note-list" id="noteList" style="margin-top:14px"></div>
+        <div class="review-toolbar" style="margin-top:14px"><button class="btn secondary" type="button" id="requestRevision">Submit revision request</button><span class="review-status" id="revisionStatus">2 included revisions</span></div>
+      </article>
+
+      <article class="portal-panel approval-box" id="approvalBox">
+        <div class="section-kicker">Final approval</div><h2 id="approvalTitle">Approve the current mix</h2><p id="approvalCopy">Approval closes client revisions for this mix version. Final file delivery can still remain locked until any required royalty paperwork is complete.</p>
+        <button class="btn" type="button" id="approveMix">Approve selected B version</button>
+      </article>
+    </div>
+
+    <aside class="portal-stack">
+      <article class="portal-panel"><div class="section-kicker">Version history</div><h3>Every pass stays here</h3><p>Rough mixes, revision versions, and final-delivery files remain attached to the project.</p><div class="version-list" id="versionList"></div></article>
+      <article class="portal-panel"><div class="section-kicker">How comparison works</div><div class="detail-list"><div class="detail-row"><span>A</span><strong>Client rough mix</strong></div><div class="detail-row"><span>B</span><strong>Your current mix</strong></div><div class="detail-row"><span>Reference tracks</span><strong>Separate</strong></div><div class="detail-row"><span>Level match</span><strong>RMS-based preview</strong></div></div></article>
+    </aside>
+  </section>
+
+  <div class="portal-note" id="pageNote"><strong>Preview mode:</strong> open this page with <code>?order_id=...</code> from an authenticated project to load private files and live review data. Without an order ID, sample workflow data is shown.</div>
+</main>
+<script>
+const params=new URLSearchParams(location.search);const orderId=params.get('order_id')||params.get('orderId');
+const roughSelect=document.getElementById('roughSelect'),mixSelect=document.getElementById('mixSelect');const audioA=document.getElementById('audioA'),audioB=document.getElementById('audioB');
+let levelMatch=true,active='A',review={approval:{},revisions:{included:2,used:0,remaining:2},notes:[]};let files={rough_mix:[],revision:[],final:[]};
+const fmt=ms=>{const n=Math.max(0,Math.round(ms));const m=Math.floor(n/60000),s=Math.floor((n%60000)/1000),x=n%1000;return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(x).padStart(3,'0')}`};
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function versionRows(){return [...(files.rough_mix||[]).map(f=>({...f,group:'Rough'})),...(files.revision||[]).map(f=>({...f,group:'Revision'})),...(files.final||[]).map(f=>({...f,group:'Final'}))];}
+function renderVersions(){const rows=versionRows();document.getElementById('versionList').innerHTML=rows.length?rows.map(f=>`<div class="version-row"><strong>${esc(f.name)}</strong><small>${f.group} · ${Math.max(0,Math.round((f.size_bytes||0)/1048576))} MB</small></div>`).join(''):'<div class="version-row"><strong>No versions yet</strong><small>Uploaded versions will appear here.</small></div>';}
+function renderNotes(){const list=document.getElementById('noteList');list.innerHTML=(review.notes||[]).length?review.notes.map(n=>`<div class="note-row"><strong><span class="timecode">${fmt(n.timestamp_ms)}</span>${esc(n.version_key)}</strong><small>${esc(n.note)}${n.resolved_at?' · Resolved':''}</small></div>`).join(''):'<div class="note-row"><strong>No notes yet</strong><small>Timestamped feedback will collect here.</small></div>';const r=review.revisions||{};document.getElementById('revisionStatus').textContent=`${r.remaining??2} included revision${(r.remaining??2)===1?'':'s'} remaining`;const a=review.approval||{};if(a.approved_at){document.getElementById('approvalBox').classList.add('approved');document.getElementById('approvalTitle').textContent='Mix approved';document.getElementById('approvalCopy').textContent=`Approved version: ${a.version_key||'selected mix'}. Client revisions are closed unless MixedByRashid reopens review.`;document.getElementById('approveMix').disabled=true;document.getElementById('requestRevision').disabled=true;document.getElementById('modeChip').textContent='Approved';}else{document.getElementById('approvalBox').classList.remove('approved');}}
+function populateSelects(){roughSelect.innerHTML='<option value="">Choose rough mix</option>'+(files.rough_mix||[]).map(f=>`<option value="${esc(f.id)}" data-name="${esc(f.name)}">${esc(f.name)}</option>`).join('');const mixes=[...(files.revision||[]),...(files.final||[])];mixSelect.innerHTML='<option value="">Choose mix version</option>'+mixes.map(f=>`<option value="${esc(f.id)}" data-name="${esc(f.name)}">${esc(f.name)}</option>`).join('');if(roughSelect.options.length>1)roughSelect.selectedIndex=1;if(mixSelect.options.length>1)mixSelect.selectedIndex=mixSelect.options.length-1;}
+async function downloadUrl(fileId){const res=await fetch(`/api/project-download?order_id=${encodeURIComponent(orderId)}&file_id=${encodeURIComponent(fileId)}`);const data=await res.json();if(!res.ok)throw new Error(data.error||'Unable to open audio.');return data.url;}
+async function loadAudio(select,audio){if(!orderId||!select.value)return;audio.src=await downloadUrl(select.value);audio.load();}
+roughSelect.addEventListener('change',()=>loadAudio(roughSelect,audioA).catch(showError));mixSelect.addEventListener('change',()=>loadAudio(mixSelect,audioB).catch(showError));
+function showError(e){document.getElementById('pageNote').innerHTML=`<strong>Review note:</strong> ${esc(e.message||e)}`;}
+function setActive(which){active=which;const target=which==='A'?audioA:audioB,source=which==='A'?audioB:audioA;const side=document.getElementById(which==='A'?'sideA':'sideB'),other=document.getElementById(which==='A'?'sideB':'sideA');side.classList.add('active');other.classList.remove('active');if(Number.isFinite(source.currentTime)&&source.currentTime>0)target.currentTime=Math.min(source.currentTime,target.duration||source.currentTime);source.pause();target.play().catch(()=>{});}
+document.getElementById('switchA').onclick=()=>setActive('A');document.getElementById('switchB').onclick=()=>setActive('B');
+function rmsFromBuffer(buffer){let sum=0,count=0;const stride=Math.max(1,Math.floor(buffer.length/250000));for(let c=0;c<buffer.numberOfChannels;c++){const d=buffer.getChannelData(c);for(let i=0;i<d.length;i+=stride){sum+=d[i]*d[i];count++;}}return count?Math.sqrt(sum/count):0;}
+async function analyze(url){const r=await fetch(url);if(!r.ok)throw new Error('Audio analysis could not fetch this file.');const arr=await r.arrayBuffer();const C=window.AudioContext||window.webkitAudioContext;const ctx=new C();try{return rmsFromBuffer(await ctx.decodeAudioData(arr.slice(0)));}finally{ctx.close();}}
+async function applyLevelMatch(){if(!levelMatch){audioA.volume=1;audioB.volume=1;return;}if(!audioA.src||!audioB.src)return;const label=document.getElementById('levelStatus');label.textContent='Analyzing level…';try{const [a,b]=await Promise.all([analyze(audioA.src),analyze(audioB.src)]);const target=Math.min(a,b);audioA.volume=a>0?Math.min(1,target/a):1;audioB.volume=b>0?Math.min(1,target/b):1;label.textContent=`Level matched · A ${audioA.volume.toFixed(2)} · B ${audioB.volume.toFixed(2)}`;}catch(e){audioA.volume=1;audioB.volume=1;label.textContent='Level match unavailable for these files; playback remains unchanged.';}}
+document.getElementById('levelToggle').onclick=()=>{levelMatch=!levelMatch;document.getElementById('levelToggle').textContent=`Level match: ${levelMatch?'On':'Off'}`;document.getElementById('levelChip').textContent=`Level match ${levelMatch?'on':'off'}`;applyLevelMatch();};audioA.addEventListener('canplay',applyLevelMatch);audioB.addEventListener('canplay',applyLevelMatch);
+setInterval(()=>{const t=(active==='A'?audioA:audioB).currentTime||0;document.getElementById('noteTime').textContent=fmt(t*1000)},250);
+async function postReview(payload){const res=await fetch('/api/project-review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId,...payload})});const data=await res.json();if(!res.ok)throw new Error(data.error||'Unable to update review.');review=data.review;renderNotes();return data;}
+document.getElementById('addNote').onclick=async()=>{if(!orderId)return showError(new Error('Open a real project to save notes.'));const text=document.getElementById('noteText').value.trim();const version=mixSelect.options[mixSelect.selectedIndex]?.dataset.name||mixSelect.value;try{await postReview({action:'add_note',versionKey:version,timestampMs:Math.round((audioB.currentTime||0)*1000),note:text});document.getElementById('noteText').value='';}catch(e){showError(e)}};
+document.getElementById('requestRevision').onclick=async()=>{if(!orderId)return showError(new Error('Open a real project to submit a revision.'));try{await postReview({action:'request_revision'});}catch(e){showError(e)}};
+document.getElementById('approveMix').onclick=async()=>{if(!orderId)return showError(new Error('Open a real project to approve a mix.'));const version=mixSelect.options[mixSelect.selectedIndex]?.dataset.name||mixSelect.value;if(!version)return showError(new Error('Choose the B mix version you are approving.'));if(!confirm(`Approve ${version}? This closes client revisions for this mix.`))return;try{await postReview({action:'approve_final',versionKey:version});}catch(e){showError(e)}};
+async function loadLive(){const [fileRes,reviewRes]=await Promise.all([fetch(`/api/project-files?order_id=${encodeURIComponent(orderId)}`),fetch(`/api/project-review?order_id=${encodeURIComponent(orderId)}`)]);const fd=await fileRes.json(),rd=await reviewRes.json();if(!fileRes.ok)throw new Error(fd.error||'Unable to load project files.');if(!reviewRes.ok)throw new Error(rd.error||'Unable to load review.');files=fd.files||{};review=rd.review||review;populateSelects();renderVersions();renderNotes();if(roughSelect.value)await loadAudio(roughSelect,audioA);if(mixSelect.value)await loadAudio(mixSelect,audioB);document.getElementById('pageNote').innerHTML='<strong>Live project:</strong> private review data is loaded for this authenticated order.';}
+function loadDemo(){files={rough_mix:[{id:'demo-a',name:'Client Rough Mix.wav',size_bytes:48234496}],revision:[{id:'demo-b1',name:'Mix V1.wav',size_bytes:49152000},{id:'demo-b2',name:'Mix V2.wav',size_bytes:49322000}],final:[]};review={approval:{approved_at:null,version_key:null},revisions:{included:2,used:0,remaining:2},notes:[{version_key:'Mix V2.wav',timestamp_ms:62200,note:'Bring the lead vocal forward a little here.',resolved_at:null}]};populateSelects();renderVersions();renderNotes();}
+if(orderId)loadLive().catch(e=>{showError(e);loadDemo()});else loadDemo();
+</script>
+</body>
+</html>

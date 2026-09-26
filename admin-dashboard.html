@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Dashboard | MixedByRashid</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="portal.css">
+</head>
+<body class="portal-page">
+<nav class="portal-nav"><div class="shell nav-inner"><a class="brand" href="index.html">Mixed<span>By</span>Rashid</a><a class="btn secondary" href="index.html">Back Home</a></div></nav>
+<main class="shell portal-main">
+  <header class="portal-header">
+    <div>
+      <div class="eyebrow">Admin Portal</div>
+      <h1>Project Control</h1>
+      <p>Payment, files, revisions, credits, royalty paperwork, and final delivery stay separated clearly so you always know what happened and what needs your action.</p>
+    </div>
+    <div class="portal-actions">
+      <span class="chip success"><span class="dot success"></span>Paid & ready</span>
+      <span class="chip warning"><span class="dot warning"></span>Action needed</span>
+    </div>
+  </header>
+
+  <section class="status-grid" aria-label="Admin project summary">
+    <article class="status-card"><span class="status-label">Payment</span><div class="status-value"><span class="dot success"></span>Paid</div><p class="status-note">Payment is verified separately from project progress.</p></article>
+    <article class="status-card"><span class="status-label">Project</span><div class="status-value"><span class="dot warning"></span>In progress</div><p class="status-note">Work has started on this order.</p></article>
+    <article class="status-card"><span class="status-label">Files</span><div class="status-value"><span class="dot success"></span>Received</div><p class="status-note">Private project folder is available.</p></article>
+    <article class="status-card"><span class="status-label">Final delivery</span><div class="status-value"><span class="dot warning"></span>Locked</div><p class="status-note">Waiting on your royalty agreement signature.</p></article>
+  </section>
+
+  <section class="portal-grid">
+    <div class="portal-stack">
+      <article class="portal-panel next-action">
+        <div class="status-label">Your next action</div>
+        <h2>Review and sign the royalty agreement.</h2>
+        <p>Royalty participation is required. The client submitted their royalty information and completed their signature. Agreement status is pending MixedByRashid, so final delivery stays locked until you sign.</p>
+        <a class="btn" href="royalty-agreement.html">Review & Sign</a>
+      </article>
+
+      <article class="portal-panel">
+        <div class="section-kicker">Order controls</div>
+        <h2>Project state</h2>
+        <div class="detail-list">
+          <div class="detail-row"><span>Payment</span><strong>Paid</strong></div>
+          <div class="detail-row"><span>Project status</span><strong>In progress</strong></div>
+          <div class="detail-row"><span>Service</span><strong>Mixing + Mastering</strong></div>
+          <div class="detail-row"><span>Storage</span><strong>Private project folder</strong></div>
+          <div class="detail-row"><span>Revisions included</span><strong>2</strong></div>
+        </div>
+      </article>
+
+      <article class="portal-panel">
+        <div class="section-kicker">Work queue</div>
+        <h2>What you can do from this project</h2>
+        <div class="action-list">
+          <div class="action-card"><div><strong>Open source files</strong><small>Stems, rough mix, references, and client notes</small></div><a class="btn secondary" href="mixing-intake.html">Open workspace</a></div>
+          <div class="action-card"><div><strong>Upload working versions</strong><small>Mix, master, A/B alternates, and revision versions</small></div><button class="btn secondary" type="button" disabled>Backend wiring next</button></div>
+          <div class="action-card"><div><strong>Review revision history</strong><small>Client notes and prior versions stay attached here</small></div><button class="btn secondary" type="button" disabled>No revisions yet</button></div>
+          <div class="action-card locked"><div><strong>Release final delivery</strong><small>Protected by the royalty agreement gate for this project</small></div><button class="btn secondary" type="button" disabled>Locked</button></div>
+        </div>
+      </article>
+    </div>
+
+    <aside class="portal-stack">
+      <article class="portal-panel">
+        <div class="section-kicker">Royalty delivery gate</div>
+        <h3>Agreement checklist</h3>
+        <div class="detail-list">
+          <div class="detail-row"><span>Participation</span><strong>Required</strong></div>
+          <div class="detail-row"><span>Client royalty info</span><strong>Submitted</strong></div>
+          <div class="detail-row"><span>Client signature</span><strong>Complete</strong></div>
+          <div class="detail-row"><span>Your signature</span><strong>Pending</strong></div>
+          <div class="detail-row"><span>Agreement</span><strong>Pending MixedByRashid</strong></div>
+          <div class="detail-row"><span>Final delivery</span><strong>Locked</strong></div>
+        </div>
+      </article>
+
+      <article class="portal-panel">
+        <div class="section-kicker">Credits & release</div>
+        <h3>Metadata</h3>
+        <div class="detail-list">
+          <div class="detail-row"><span>Required credit</span><strong>Mixed by Rashid</strong></div>
+          <div class="detail-row"><span>Splits</span><strong>Client submitted</strong></div>
+          <div class="detail-row"><span>PRO / IPI / CAE</span><strong>On file when required</strong></div>
+          <div class="detail-row"><span>ISRC / UPC</span><strong>Pending release info</strong></div>
+        </div>
+      </article>
+
+      <article class="portal-panel">
+        <div class="section-kicker">Delivery rule</div>
+        <h3>No accidental release</h3>
+        <p>Flat-fee projects with no royalty requirement can deliver normally. Royalty-participating projects only unlock final files after the required agreement is fully executed.</p>
+      </article>
+    </aside>
+  </section>
+
+  <div class="portal-note"><strong>Preview state:</strong> this dashboard uses sample project values to demonstrate the approved admin workflow. Backend data and file actions remain isolated to the non-production build until wiring and tests are complete.</div>
+</main>
+</body>
+</html>

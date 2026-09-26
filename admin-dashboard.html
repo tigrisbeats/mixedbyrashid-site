@@ -10,6 +10,7 @@
 .project-picker{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.project-picker select{min-height:44px;background:#0d0d11;color:#fff;border:1px solid var(--line);border-radius:12px;padding:0 12px}
 .file-list{display:grid;gap:9px}.file-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:12px;background:#0d0d11}.file-row small{color:var(--muted)}
 .hidden{display:none!important}.error-box{border:1px solid #6d3535;background:#251515;border-radius:14px;padding:14px;color:#ffb3b3}.success-box{border:1px solid #315e43;background:#102018;border-radius:14px;padding:14px;color:#a7efbd}
+.owner-overview{margin:0 0 18px}.owner-overview .status-value{font-size:1.45rem}.service-snapshot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.service-snapshot .mini-card{text-align:center}.customer-list{display:grid;gap:8px}.customer-row{display:flex;justify-content:space-between;gap:14px;align-items:center;border-top:1px solid var(--line);padding-top:9px}.customer-row:first-child{border-top:0;padding-top:0}.customer-row small{color:var(--muted)}@media(max-width:620px){.service-snapshot{grid-template-columns:1fr}}
 </style>
 </head>
 <body class="portal-page">
@@ -22,7 +23,30 @@
 
 <div id="errorBox" class="error-box hidden"></div>
 <div id="successBox" class="success-box hidden"></div>
-<section id="emptyState" class="portal-panel hidden"><h2>No active projects</h2><p>Paid client projects will appear here automatically.</p></section>
+
+<section class="status-grid owner-overview" aria-label="Business overview">
+<article class="status-card"><span class="status-label">Online paid</span><div class="status-value" id="overviewPaid">$0</div><p class="status-note">Payments recorded in the portal</p></article>
+<article class="status-card"><span class="status-label">Active work</span><div class="status-value" id="overviewActive">0</div><p class="status-note">Ready, in progress, or revision</p></article>
+<article class="status-card"><span class="status-label">Completed</span><div class="status-value" id="overviewComplete">0</div><p class="status-note">Finished portal projects</p></article>
+<article class="status-card"><span class="status-label">Customers</span><div class="status-value" id="overviewCustomers">0</div><p class="status-note">Unique portal customer emails</p></article>
+</section>
+
+<section class="portal-grid owner-overview">
+<div class="portal-panel">
+<div class="section-kicker">Storefront snapshot</div><h2>Service activity</h2>
+<div class="service-snapshot">
+<div class="mini-card"><span>Studio</span><strong id="studioCount">0</strong></div>
+<div class="mini-card"><span>Mixing</span><strong id="mixingCount">0</strong></div>
+<div class="mini-card"><span>Mastering</span><strong id="masteringCount">0</strong></div>
+</div>
+</div>
+<div class="portal-panel">
+<div class="section-kicker">Customers</div><h2>Recent clients</h2>
+<div class="customer-list" id="customerList"><div class="customer-row"><span>No portal customers yet</span></div></div>
+</div>
+</section>
+
+<section id="emptyState" class="portal-panel hidden"><h2>No active projects</h2><p>Portal-connected paid projects will appear here automatically.</p></section>
 
 <div id="dashboard" class="hidden">
 <section class="status-grid">
@@ -98,10 +122,35 @@ async function api(url,options){
   return d;
 }
 
+function renderOverview(){
+  const paid=projects.filter(p=>p.payment_status==='paid');
+  const active=projects.filter(p=>['ready','in_progress','revision'].includes(p.project_status));
+  const complete=projects.filter(p=>p.project_status==='complete');
+  const customerCounts=new Map();
+  projects.forEach(p=>{
+    const email=String(p.customer_email||'').trim().toLowerCase();
+    if(email)customerCounts.set(email,(customerCounts.get(email)||0)+1);
+  });
+
+  document.getElementById('overviewPaid').textContent=money(paid.reduce((sum,p)=>sum+(Number(p.amount_total_cents)||0),0));
+  document.getElementById('overviewActive').textContent=active.length;
+  document.getElementById('overviewComplete').textContent=complete.length;
+  document.getElementById('overviewCustomers').textContent=customerCounts.size;
+  document.getElementById('studioCount').textContent=projects.filter(p=>p.service==='studio').length;
+  document.getElementById('mixingCount').textContent=projects.filter(p=>p.service==='mixing').length;
+  document.getElementById('masteringCount').textContent=projects.filter(p=>p.service==='mastering').length;
+
+  const rows=[...customerCounts.entries()].slice(0,6);
+  document.getElementById('customerList').innerHTML=rows.length
+    ? rows.map(([email,count])=>'<div class="customer-row"><span>'+esc(email)+'</span><small>'+count+' project'+(count===1?'':'s')+'</small></div>').join('')
+    : '<div class="customer-row"><span>No portal customers yet</span></div>';
+}
+
 async function loadProjects(preferId){
   clearMessages();
   const data=await api('/api/projects?scope=admin');
   projects=data.projects||[];
+  renderOverview();
   if(!projects.length){
     dashboard.classList.add('hidden');emptyState.classList.remove('hidden');
     select.innerHTML='<option>No projects</option>';return;

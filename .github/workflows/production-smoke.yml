@@ -1,3 +1,4 @@
+# Deploy Preview refresh: Stripe sandbox environment verification
 name: Production Smoke
 
 on:

@@ -14,7 +14,8 @@ async function closeRequest(id) {
   }
 }
 
-export default async () => {
+export default async (request) => {
+  const scheduleEvent = await request.json().catch(() => ({}));
   const sql = getDb();
 
   await sql`
@@ -81,8 +82,9 @@ export default async () => {
     }
   }
 
-  return new Response(JSON.stringify({ processed: results.length, results }), {
-    status: 200,
-    headers: { 'content-type': 'application/json; charset=utf-8' },
+  console.log('storage-cleanup', {
+    next_run: scheduleEvent.next_run || null,
+    processed: results.length,
+    results,
   });
 };

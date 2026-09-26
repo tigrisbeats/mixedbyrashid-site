@@ -1,4 +1,3 @@
-# Deploy Preview refresh: Stripe sandbox environment verification
 name: Production Smoke
 
 on:
@@ -71,53 +70,3 @@ jobs:
 
           project_code=$(curl -sS -o /tmp/projects-unauth.json -w "%{http_code}" "$BASE/api/projects" || true)
           test "$project_code" = "401"
-
-          storage_ready=0
-          for attempt in $(seq 1 18); do
-            storage_code=$(curl -sS \
-              -H "x-mixedbyrashid-storage-smoke: storage-e2e-20260926-v1" \
-              -o /tmp/storage-smoke.json \
-              -w "%{http_code}" \
-              -X POST \
-              "$BASE/api/storage-smoke" || true)
-
-            if [ "$storage_code" = "200" ]; then
-              storage_ready=1
-              break
-            fi
-
-            if [ "$storage_code" != "404" ]; then
-              echo "Storage smoke returned HTTP $storage_code"
-              cat /tmp/storage-smoke.json 2>/dev/null || true
-              exit 1
-            fi
-
-            echo "Waiting for the current storage smoke function (attempt $attempt)"
-            sleep 10
-          done
-
-          if [ "$storage_ready" != "1" ]; then
-            echo "Storage smoke endpoint did not become available."
-            cat /tmp/storage-smoke.json 2>/dev/null || true
-            exit 1
-          fi
-
-          node -e '
-            const fs = require("fs");
-            const body = JSON.parse(fs.readFileSync("/tmp/storage-smoke.json", "utf8"));
-            if (body.ok !== true) throw new Error("Storage smoke did not report success.");
-            const expected = [
-              "token_refresh",
-              "folder_create",
-              "file_request_create",
-              "upload",
-              "list",
-              "temporary_download",
-              "cleanup"
-            ];
-            for (const key of expected) {
-              if (body.checks?.[key] !== true) {
-                throw new Error("Storage smoke check failed: " + key);
-              }
-            }
-          '

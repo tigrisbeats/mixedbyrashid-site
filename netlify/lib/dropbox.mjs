@@ -1,7 +1,7 @@
 const API = 'https://api.dropboxapi.com/2';
 
 function requireEnv(name) {
-  const value = process.env[name];
+  const value = Netlify.env.get(name);
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
   return value;
 }

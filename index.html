@@ -464,5 +464,25 @@ Be Unapologetically Free.<br><br>
 })();
 </script>
 
+
+<script type="module">
+const authHash=/^#(confirmation_token|recovery_token|invite_token|email_change_token|access_token)=/;
+if(authHash.test(location.hash)){
+  const { handleAuthCallback } = await import('https://esm.sh/@netlify/identity@2.0.0');
+  try{
+    const result=await handleAuthCallback();
+    if(result?.type==='confirmation'||result?.type==='oauth'){
+      location.replace('/client');
+    }else if(result?.type==='recovery'){
+      location.replace('/login?recovery=1');
+    }else if(result?.type==='invite'){
+      location.replace('/signup?invite=1');
+    }
+  }catch{
+    location.replace('/login?error=callback');
+  }
+}
+</script>
+
 </body>
 </html>

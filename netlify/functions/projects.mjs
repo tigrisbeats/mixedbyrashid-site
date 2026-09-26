@@ -169,4 +169,148 @@ async function clientProjects(sql, user) {
 }
 
 async function adminProjects(sql) {
-  return sqm
+  return sql`
+    select
+      o.id,
+      o.user_id,
+      o.customer_email,
+      o.service,
+      o.payment_status,
+      o.project_status,
+      o.amount_total_cents,
+      o.included_revisions,
+      o.revision_count,
+      o.royalty_participation_required,
+      o.royalty_agreement_status,
+      o.created_at,
+      o.paid_at,
+      o.completed_at,
+      a.id as agreement_id,
+      a.agreement_type,
+      a.attorney_review_status,
+      a.client_signed_at,
+      a.owner_signed_at,
+      s.project_folder_path,
+      s.source_request_url,
+      s.reference_request_url,
+      s.cleanup_status,
+      s.cleanup_after,
+      r.artist_name,
+      r.song_title,
+      r.isrc,
+      r.upc,
+      r.release_date,
+      r.label_name,
+      r.distributor
+    from portal_orders o
+    left join portal_royalty_agreements a on a.order_id = o.id
+    left join portal_project_storage s on s.order_id = o.id
+    left join portal_release_metadata r on r.order_id = o.id
+    where o.project_status <> 'cancelled'
+    order by
+      case o.project_status
+        when 'ready' then 1
+        when 'revision' then 2
+        when 'in_progress' then 3
+        when 'pending' then 4
+        when 'complete' then 5
+        else 6
+      end,
+      o.created_at desc
+    limit 100
+  `;
+}
+
+export async function handler(event, context) {
+  try {
+    if (!['GET', 'PATCH'].includes(event.httpMethod)) {
+      return json(405, { error: 'Method not allowed.' });
+    }
+
+    const user = portalUser(context);
+    const sql = getDb();
+
+    if (event.httpMethod === 'PATCH') {
+      if (!isPortalAdmin(user)) {
+        return json(403, { error: 'Admin access required.' });
+      }
+
+      const body = parseBody(event);
+      const orderId = body.orderId;
+      const projectStatus = body.projectStatus;
+      const allowed = new Set([
+        'pending',
+        'ready',
+        'in_progress',
+        'revision',
+        'complete',
+        'cancelled',
+      ]);
+
+      if (!orderId || !allowed.has(projectStatus)) {
+        return json(400, { error: 'Valid orderId and projectStatus are required.' });
+      }
+
+      const updated = await sql`
+        update portal_orders
+        set project_status = ${projectStatus},
+            completed_at = case
+              when ${projectStatus} = 'complete' then coalesce(completed_at, now())
+              else null
+            end,
+            updated_at = now()
+        where id = ${orderId}
+        returning id
+      `;
+
+      if (!updated[0]) return json(404, { error: 'Project not found.' });
+
+      if (projectStatus !== 'complete') {
+        await sql`
+          update portal_project_storage
+          set cleanup_status = case
+                when deleted_at is null then 'active'
+                else cleanup_status
+              end,
+              cleanup_after = case
+                when deleted_at is null then null
+                else cleanup_after
+              end,
+              updated_at = now()
+          where order_id = ${orderId}
+        `;
+      }
+
+      const row = await detailedProject(sql, orderId);
+      return json(200, { project: shapeProject(row) });
+    }
+
+    const orderId =
+      event.queryStringParameters?.order_id ||
+      event.queryStringParameters?.orderId;
+
+    if (orderId) {
+      const row = await detailedProject(sql, orderId);
+      if (!row) return json(404, { error: 'Project not found.' });
+      assertOrderAccess(row, user);
+      return json(200, { project: shapeProject(row) });
+    }
+
+    const scope = event.queryStringParameters?.scope;
+    if (scope === 'admin') {
+      if (!isPortalAdmin(user)) {
+        return json(403, { error: 'Admin access required.' });
+      }
+      const rows = await adminProjects(sql);
+      return json(200, { projects: rows.map(shapeProject) });
+    }
+
+    const rows = await clientProjects(sql, user);
+    return json(200, { projects: rows.map(shapeProject) });
+  } catch (error) {
+    console.error('projects', error);
+    return json(error.statusCode || 500, {
+      error: error.statusCode ? error.message : 'Unable to load projects.',
+    });
+  }
+}

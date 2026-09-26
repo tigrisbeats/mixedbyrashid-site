@@ -4,9 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Book Studio Time | MixedByRashid</title>
-<meta name="description" content="Book MixedByRashid studio time in Dallas, pay the deposit, and choose a session length.">
+<meta name="description" content="Choose a MixedByRashid studio session in Dallas, pay the required deposit, and schedule your time.">
 <meta name="theme-color" content="#09090b">
 <link rel="stylesheet" href="styles.css">
+<style>
+.booking-builder{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}
+.booking-control{display:grid;gap:12px}
+.booking-control label{font-weight:850}
+.booking-control select,.booking-control input{width:100%;min-height:52px;border:1px solid var(--line);border-radius:14px;background:#0d0d11;color:var(--text);padding:0 14px;font:inherit}
+.price-breakdown{display:grid;gap:0;margin-top:10px}
+.price-row{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
+.price-row:first-child{border-top:0}
+.price-row span{color:var(--muted)}
+.price-row.total strong,.price-row.deposit strong{font-size:20px}
+.deposit-note{padding:14px;border-radius:14px;background:#0d0d11;border:1px solid var(--line);color:var(--muted);font-size:13px}
+.checkout-status{margin-top:12px;color:var(--muted);font-size:13px}
+.schedule-gate{display:none}
+.schedule-gate.show{display:block}
+.schedule-actions{display:flex;gap:10px;flex-wrap:wrap}
+@media(max-width:840px){.booking-builder{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <nav>
@@ -16,60 +33,152 @@
 <a class="btn secondary" href="index.html">Back Home</a>
 </div>
 </nav>
+
 <main>
 <section class="hero shell">
-<div class="eyebrow">Dallas, Texas • Studio Booking</div>
+<div class="eyebrow">Dallas, Texas â¢ Studio Booking</div>
 <h1>BOOK YOUR STUDIO SESSION.</h1>
-<p class="lede">Studio time is $60/hour with a 2-hour minimum. A $60 non-refundable deposit is required to secure your session. After paying the deposit, choose your session length and an available time.</p>
-<div class="hero-actions">
-<a class="btn primary" href="https://buy.stripe.com/5kQcN609P09O1aHbhc4wM00" target="_blank" rel="noopener">Step 1 • Pay $60 Deposit</a>
-<a class="btn secondary" href="#schedule">Step 2 • Choose Session</a>
-</div>
+<p class="lede">Studio time is $60/hour with a 2-hour minimum. Choose your session length first. Your non-refundable deposit is 25% of the session total, with a $60 minimum.</p>
 </section>
+
 <section class="section shell">
+<div class="booking-builder">
+  <div class="panel">
+    <h3>1 â¢ Choose your session</h3>
+    <div class="booking-control">
+      <label for="hours">Session length</label>
+      <select id="hours">
+        <option value="2">2 hours</option>
+        <option value="3">3 hours</option>
+        <option value="4">4 hours</option>
+        <option value="5">5 hours</option>
+        <option value="6">6 hours</option>
+        <option value="7">7 hours</option>
+        <option value="8">8 hours</option>
+        <option value="9">9 hours</option>
+        <option value="10">10 hours</option>
+        <option value="11">11 hours</option>
+        <option value="12">12 hours</option>
+      </select>
+
+      <label for="email">Email for your receipt</label>
+      <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+
+      <div class="deposit-note">The deposit is non-refundable and applies toward your session total. The remaining balance is due at the session. Bookings require at least 12 hours notice and a 30-minute buffer between sessions.</div>
+
+      <button class="btn primary" id="checkout" type="button">Continue to Deposit Checkout</button>
+      <div class="checkout-status" id="checkout-status"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Your session</h3>
+    <div class="price-breakdown">
+      <div class="price-row"><span>Rate</span><strong>$60/hour</strong></div>
+      <div class="price-row"><span>Hours</span><strong id="hours-out">2</strong></div>
+      <div class="price-row total"><span>Session total</span><strong id="total-out">$120</strong></div>
+      <div class="price-row deposit"><span>Deposit due now</span><strong id="deposit-out">$60</strong></div>
+      <div class="price-row"><span>Balance due at session</span><strong id="balance-out">$60</strong></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section id="schedule" class="section shell schedule-gate">
 <div class="panel">
-<h3>Before you schedule</h3>
-<p>The $60 studio deposit is non-refundable and applies toward your session total. A calendar selection by itself does not make the session fully confirmed. Your booking is secured after the deposit has been paid.</p>
-<p class="smallprint">Studio bookings require at least 12 hours notice. Please allow a 30-minute buffer between sessions. Sessions longer than 12 hours require manual approval.</p>
+<h3>2 â¢ Choose your date and time</h3>
+<p>Your deposit checkout is complete. Choose the scheduling link that matches the session length you paid for.</p>
+<div class="schedule-actions">
+<a id="schedule-link" class="btn primary" href="https://calendly.com/tigrisbeats/mixedbyrashid-studio-time" target="_blank" rel="noopener">Open Scheduling</a>
+</div>
+<p class="smallprint">A calendar selection is matched to the paid deposit before the session is treated as secured.</p>
 </div>
 </section>
-<section id="schedule" class="section shell">
-<div class="section-head"><h2>Step 2 • Choose your session</h2><p>After paying the deposit, select the block that fits your project.</p></div>
-<div class="grid">
-<article class="card">
-<div class="icon">🎙️</div>
-<h3>2–5 Hours</h3>
-<div class="price">$120–$300</div>
-<p>Standard recording block. Choose 2, 3, 4, or 5 hours.</p>
-<ul><li>$60/hour</li><li>2-hour minimum</li><li>$60 deposit required</li><li>Balance due at session</li></ul>
-<a class="btn primary" href="https://calendly.com/tigrisbeats/mixedbyrashid-studio-time" target="_blank" rel="noopener">Choose 2–5 Hours</a>
-</article>
-<article class="card">
-<div class="icon">🎛️</div>
-<h3>6–9 Hours</h3>
-<div class="price">$360–$540</div>
-<p>Extended studio day. Choose 6, 7, 8, or 9 hours.</p>
-<ul><li>$60/hour</li><li>$60 deposit required</li><li>Long-session pacing recommended</li><li>Balance due at session</li></ul>
-<a class="btn primary" href="https://calendly.com/tigrisbeats/mixedbyrashid-studio-time-extended" target="_blank" rel="noopener">Choose 6–9 Hours</a>
-</article>
-<article class="card">
-<div class="icon">🕛</div>
-<h3>10–12 Hours</h3>
-<div class="price">$600–$720</div>
-<p>Full-day block. Choose 10, 11, or 12 hours.</p>
-<ul><li>$60/hour</li><li>$60 deposit required</li><li>Maximum automatic booking length</li><li>Balance due at session</li></ul>
-<a class="btn primary" href="https://calendly.com/tigrisbeats/mixedbyrashid-studio-time-full-day" target="_blank" rel="noopener">Choose 10–12 Hours</a>
-</article>
-</div>
-</section>
+
 <section class="section shell">
 <div class="panel">
 <h3>Need more than 12 hours?</h3>
-<p>Sessions longer than 12 hours are not automatically bookable. Send a request first so MixedByRashid can approve the schedule and make sure the session is realistic before anything is locked in.</p>
+<p>Sessions longer than 12 hours need manual approval so the schedule stays realistic and you are not accidentally booking an unhealthy marathon.</p>
 <a class="btn secondary" href="mailto:Tigrisbeats@gmail.com?subject=13%2B%20Hour%20Studio%20Session%20Request&body=Requested%20session%20length%3A%0APreferred%20date%3A%0APreferred%20start%20time%3A%0AProject%20details%3A">Request 13+ Hours</a>
 </div>
 </section>
 </main>
-<footer class="shell"><strong>MixedByRashid</strong><br>Recording • Mixing • Mastering<br><br>© 2026 MixedByRashid. All rights reserved.</footer>
+
+<footer class="shell"><strong>MixedByRashid</strong><br>Recording â¢ Mixing â¢ Mastering<br><br>Â© 2026 MixedByRashid. All rights reserved.</footer>
+
+<script>
+(function(){
+  const hours = document.getElementById('hours');
+  const email = document.getElementById('email');
+  const checkout = document.getElementById('checkout');
+  const status = document.getElementById('checkout-status');
+  const schedule = document.getElementById('schedule');
+  const scheduleLink = document.getElementById('schedule-link');
+
+  const money = cents => '$' + (cents / 100).toFixed(0);
+
+  function depositCents(h){
+    const total = h * 6000;
+    return Math.max(6000, Math.round(total * 0.25));
+  }
+
+  function render(){
+    const h = Number(hours.value);
+    const total = h * 6000;
+    const deposit = depositCents(h);
+    document.getElementById('hours-out').textContent = h;
+    document.getElementById('total-out').textContent = money(total);
+    document.getElementById('deposit-out').textContent = money(deposit);
+    document.getElementById('balance-out').textContent = money(total - deposit);
+  }
+
+  function schedulerFor(h){
+    if(h <= 5) return 'https://calendly.com/tigrisbeats/mixedbyrashid-studio-time';
+    if(h <= 9) return 'https://calendly.com/tigrisbeats/mixedbyrashid-studio-time-extended';
+    return 'https://calendly.com/tigrisbeats/mixedbyrashid-studio-time-full-day';
+  }
+
+  hours.addEventListener('change', render);
+
+  checkout.addEventListener('click', async () => {
+    status.textContent = 'Opening secure checkoutâ¦';
+    checkout.disabled = true;
+
+    try {
+      const response = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: {'content-type':'application/json'},
+        body: JSON.stringify({
+          service: 'studio',
+          hours: Number(hours.value),
+          email: email.value.trim() || undefined
+        })
+      });
+      const data = await response.json();
+      if(!response.ok) throw new Error(data.error || 'Checkout is unavailable.');
+      window.location.href = data.checkout_url;
+    } catch(error) {
+      status.textContent = error.message;
+      checkout.disabled = false;
+    }
+  });
+
+  const query = new URLSearchParams(location.search);
+  if(query.get('checkout') === 'success'){
+    const paidHours = Number(query.get('hours') || hours.value);
+    if(Number.isInteger(paidHours) && paidHours >= 2 && paidHours <= 12){
+      hours.value = String(paidHours);
+      render();
+      scheduleLink.href = schedulerFor(paidHours);
+      schedule.classList.add('show');
+      schedule.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+  } else if(query.get('checkout') === 'cancelled'){
+    status.textContent = 'Checkout was cancelled. Nothing was charged.';
+  }
+
+  render();
+})();
+</script>
 </body>
 </html>

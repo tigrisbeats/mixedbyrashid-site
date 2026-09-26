@@ -86,8 +86,8 @@
 
 <section id="schedule" class="section shell schedule-gate">
 <div class="panel">
-<h3>2 • Choose your date and time</h3>
-<p>Your deposit checkout is complete. Choose the scheduling link that matches the session length you paid for.</p>
+<h3 id="schedule-title">2 • Choose your date and time</h3>
+<p id="schedule-copy">Your deposit checkout is complete. Choose your date and time below.</p>
 <div class="schedule-actions">
 <a id="schedule-link" class="btn primary" href="https://calendly.com/tigrisbeats/mixedbyrashid-studio-time" target="_blank" rel="noopener">Open Scheduling</a>
 </div>
@@ -133,9 +133,28 @@
   }
 
   function schedulerFor(h){
-    if(h <= 5) return 'https://calendly.com/tigrisbeats/mixedbyrashid-studio-time';
-    if(h <= 9) return 'https://calendly.com/tigrisbeats/mixedbyrashid-studio-time-extended';
-    return 'https://calendly.com/tigrisbeats/mixedbyrashid-studio-time-full-day';
+    if(h <= 5){
+      return {
+        url: 'https://calendly.com/tigrisbeats/mixedbyrashid-studio-time',
+        label: 'Choose Date & Time',
+        title: '2 • Choose your date and time',
+        copy: 'Your deposit checkout is complete. Choose the matching 2–5 hour duration on the scheduling page.',
+        external: true
+      };
+    }
+
+    const subject = encodeURIComponent('MixedByRashid ' + h + '-Hour Studio Session Scheduling');
+    const body = encodeURIComponent(
+      'My ' + h + '-hour studio deposit is paid.\n\nPreferred date:\nPreferred start time:\nAlternate date/time:\n\nName:\nPhone:'
+    );
+
+    return {
+      url: 'mailto:Tigrisbeats@gmail.com?subject=' + subject + '&body=' + body,
+      label: 'Schedule Extended Session',
+      title: '2 • Schedule your extended session',
+      copy: 'Your deposit checkout is complete. Sessions longer than 5 hours are scheduled directly while this Calendly plan supports one active booking type.',
+      external: false
+    };
   }
 
   hours.addEventListener('change', render);
@@ -202,7 +221,18 @@
     if(Number.isInteger(paidHours) && paidHours >= 2 && paidHours <= 12){
       hours.value = String(paidHours);
       render();
-      scheduleLink.href = schedulerFor(paidHours);
+      const scheduling = schedulerFor(paidHours);
+      scheduleLink.href = scheduling.url;
+      scheduleLink.textContent = scheduling.label;
+      document.getElementById('schedule-title').textContent = scheduling.title;
+      document.getElementById('schedule-copy').textContent = scheduling.copy;
+      if(scheduling.external){
+        scheduleLink.target = '_blank';
+        scheduleLink.rel = 'noopener';
+      }else{
+        scheduleLink.removeAttribute('target');
+        scheduleLink.removeAttribute('rel');
+      }
       schedule.classList.add('show');
       schedule.scrollIntoView({behavior:'smooth', block:'start'});
     }

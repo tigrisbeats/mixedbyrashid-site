@@ -34,3 +34,47 @@ jobs:
           while IFS= read -r -d '' file; do
             node --check "$file"
           done < <(find netlify -type f -name '*.mjs' -print0)
+
+      - name: Verify Stripe sandbox checkout on Deploy Preview
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://deploy-preview-12--mixedbyrashid.netlify.app"
+          ready=0
+
+          for attempt in $(seq 1 8); do
+            code=$(curl -sS \
+              -H "Origin: $BASE" \
+              -H "Referer: $BASE/" \
+              -H "Content-Type: application/json" \
+              -o /tmp/checkout.json \
+              -w "%{http_code}" \
+              -X POST \
+              --data '{"service":"studio","hours":2}' \
+              "$BASE/api/create-checkout" || true)
+
+            if [ "$code" = "200" ]; then
+              ready=1
+              break
+            fi
+
+            echo "Sandbox checkout attempt $attempt returned HTTP $code"
+            cat /tmp/checkout.json 2>/dev/null || true
+            sleep 10
+          done
+
+          if [ "$ready" != "1" ]; then
+            echo "Stripe sandbox checkout did not become ready."
+            cat /tmp/checkout.json 2>/dev/null || true
+            exit 1
+          fi
+
+          node -e '
+            const fs = require("fs");
+            const body = JSON.parse(fs.readFileSync("/tmp/checkout.json", "utf8"));
+            if (body.mode !== "test") throw new Error("Checkout did not use Stripe test mode.");
+            if (body.service !== "studio") throw new Error("Unexpected service.");
+            if (body.amount_cents !== 6000) throw new Error("Unexpected 2-hour deposit.");
+            if (!body.session_id || !body.checkout_url) throw new Error("Stripe Checkout session was not created.");
+          '

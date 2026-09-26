@@ -6,15 +6,11 @@ import {
 } from '../lib/auth.mjs';
 import { finalDeliveryGate } from '../lib/royalty-rules.mjs';
 
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: { 'content-type': 'application/json; charset=utf-8' },
-  body: JSON.stringify(body),
-});
+const json = (status, body) => Response.json(body, { status });
 
-function parseBody(event) {
+async function parseBody(request) {
   try {
-    return event.body ? JSON.parse(event.body) : {};
+    return await request.json();
   } catch {
     const error = new Error('Request body must be valid JSON.');
     error.statusCode = 400;
@@ -118,7 +114,7 @@ async function detailedProject(sql, orderId) {
 async function clientProjects(sql, user) {
   await sql`
     update portal_orders
-    set user_id = ${user.sub},
+    set user_id = ${user.id},
         updated_at = now()
     where user_id is null
       and lower(customer_email) = lower(${user.email || ''})
@@ -161,7 +157,7 @@ async function clientProjects(sql, user) {
     left join portal_royalty_agreements a on a.order_id = o.id
     left join portal_project_storage s on s.order_id = o.id
     left join portal_release_metadata r on r.order_id = o.id
-    where o.user_id = ${user.sub}
+    where o.user_id = ${user.id}
        or lower(o.customer_email) = lower(${user.email || ''})
     order by o.created_at desc
     limit 50
@@ -221,21 +217,21 @@ async function adminProjects(sql) {
   `;
 }
 
-export async function handler(event, context) {
+export default async (request) => {
   try {
-    if (!['GET', 'PATCH'].includes(event.httpMethod)) {
+    if (!['GET', 'PATCH'].includes(request.method)) {
       return json(405, { error: 'Method not allowed.' });
     }
 
-    const user = portalUser(context);
+    const user = await portalUser();
     const sql = getDb();
 
-    if (event.httpMethod === 'PATCH') {
+    if (request.method === 'PATCH') {
       if (!isPortalAdmin(user)) {
         return json(403, { error: 'Admin access required.' });
       }
 
-      const body = parseBody(event);
+      const body = await parseBody(request);
       const orderId = body.orderId;
       const projectStatus = body.projectStatus;
       const allowed = new Set([
@@ -285,9 +281,10 @@ export async function handler(event, context) {
       return json(200, { project: shapeProject(row) });
     }
 
+    const url = new URL(request.url);
     const orderId =
-      event.queryStringParameters?.order_id ||
-      event.queryStringParameters?.orderId;
+      url.searchParams.get('order_id') ||
+      url.searchParams.get('orderId');
 
     if (orderId) {
       const row = await detailedProject(sql, orderId);
@@ -296,7 +293,7 @@ export async function handler(event, context) {
       return json(200, { project: shapeProject(row) });
     }
 
-    const scope = event.queryStringParameters?.scope;
+    const scope = url.searchParams.get('scope');
     if (scope === 'admin') {
       if (!isPortalAdmin(user)) {
         return json(403, { error: 'Admin access required.' });
@@ -313,4 +310,8 @@ export async function handler(event, context) {
       error: error.statusCode ? error.message : 'Unable to load projects.',
     });
   }
-}
+};
+
+export const config = {
+  path: '/api/projects',
+};

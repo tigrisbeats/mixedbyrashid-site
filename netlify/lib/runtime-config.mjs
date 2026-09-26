@@ -45,9 +45,13 @@ export function resolvePaymentRuntime(values = {}) {
   };
 }
 
+function runtimeContext() {
+  return Netlify.env.get('PORTAL_CONTEXT') || Netlify.env.get('CONTEXT');
+}
+
 export function paymentRuntimeConfig() {
   return resolvePaymentRuntime({
-    CONTEXT: Netlify.env.get('CONTEXT'),
+    CONTEXT: runtimeContext(),
     PAYMENTS_ENABLED: Netlify.env.get('PAYMENTS_ENABLED'),
     STRIPE_SANDBOX_ENABLED: Netlify.env.get('STRIPE_SANDBOX_ENABLED'),
     STRIPE_TEST_SECRET_KEY: Netlify.env.get('STRIPE_TEST_SECRET_KEY'),
@@ -79,7 +83,7 @@ export function resolveStorageRuntime(values = {}) {
 
 export function storageRuntimeConfig() {
   return resolveStorageRuntime({
-    CONTEXT: Netlify.env.get('CONTEXT'),
+    CONTEXT: runtimeContext(),
     PRIVATE_STORAGE_ENABLED: Netlify.env.get('PRIVATE_STORAGE_ENABLED'),
     DROPBOX_APP_KEY: Netlify.env.get('DROPBOX_APP_KEY'),
     DROPBOX_APP_SECRET: Netlify.env.get('DROPBOX_APP_SECRET'),

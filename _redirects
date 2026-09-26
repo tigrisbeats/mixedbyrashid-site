@@ -1,5 +1,8 @@
 /book       /booking.html           200
 /mixing     /mixing-intake.html     200
 /mastering  /mastering-intake.html  200
+/client     /client-dashboard.html  200
+/admin      /admin-dashboard.html   200
+/royalties  /royalty-agreement.html 200
 /policies   /policies.html          200
 /beats      /beats.html             200

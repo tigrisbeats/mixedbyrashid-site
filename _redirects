@@ -6,3 +6,8 @@
 /royalties  /royalty-agreement.html 200
 /policies   /policies.html          200
 /beats      /beats.html             200
+
+/api/projects          /.netlify/functions/projects          200
+/api/project-storage   /.netlify/functions/project-storage   200
+/api/project-files     /.netlify/functions/project-files     200
+/api/project-download  /.netlify/functions/project-download  200

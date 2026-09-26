@@ -26,7 +26,13 @@
 <button class="btn" type="submit">Log in</button>
 </form>
 <p class="note">Need an account? <a href="/signup">Create one here.</a></p>
-</section>
+<div id="authStatus" class="note" style="margin-top:14px"></div>\n</section>
 </main>
+<script>
+const q=new URLSearchParams(location.search);
+const s=document.getElementById('authStatus');
+if(q.get('created')==='1') s.textContent='Account created. Check your email to confirm it, then log in.';
+if(q.get('error')) s.textContent='That request could not be completed. Check your information and try again.';
+</script>
 </body>
 </html>

@@ -10,15 +10,28 @@
 .project-picker{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.project-picker select{min-height:44px;background:#0d0d11;color:#fff;border:1px solid var(--line);border-radius:12px;padding:0 12px}
 .file-list{display:grid;gap:9px}.file-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:12px;background:#0d0d11}.file-row small{color:var(--muted)}
 .hidden{display:none!important}.error-box{border:1px solid #6d3535;background:#251515;border-radius:14px;padding:14px;color:#ffb3b3}.success-box{border:1px solid #315e43;background:#102018;border-radius:14px;padding:14px;color:#a7efbd}
+.owner-tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.owner-tools .btn{white-space:nowrap}.summary-number{font-size:clamp(1.55rem,4vw,2.15rem);font-weight:800;letter-spacing:-.04em}.summary-note{color:var(--muted);font-size:13px;margin-top:5px}
 </style>
 </head>
 <body class="portal-page">
-<nav class="portal-nav"><div class="shell nav-inner"><a class="brand" href="index.html">Mixed<span>By</span>Rashid</a><div class="portal-actions"><a class="btn secondary" href="/">Home</a><form method="post" action="/api/portal-logout"><button class="btn secondary" type="submit">Log out</button></form></div></div></nav>
+<nav class="portal-nav"><div class="shell nav-inner"><a class="brand" href="/">Mixed<span>By</span>Rashid</a><div class="portal-actions"><a class="btn secondary" href="/">Home</a><form method="post" action="/api/portal-logout"><button class="btn secondary" type="submit">Log out</button></form></div></div></nav>
 <main class="shell portal-main">
 <header class="portal-header">
-<div><div class="eyebrow">Admin Portal</div><h1>Project control.</h1><p>Paid orders, storage, revisions, client review, royalty gates, and final delivery in one place.</p></div>
+<div><div class="eyebrow">Admin Portal</div><h1>Project control.</h1><p>Paid orders, storage, revisions, client review, royalty gates, and final delivery in one place.</p>
+<div class="owner-tools">
+<a class="btn secondary" href="/book">Studio booking</a>
+<a class="btn secondary" href="/client">Client portal</a>
+<a class="btn secondary" href="/#services">Services</a>
+</div></div>
 <div class="project-picker"><label for="projectSelect">Project</label><select id="projectSelect"><option>Loading…</option></select></div>
 </header>
+
+<section class="status-grid" aria-label="Business summary">
+<article class="status-card"><span class="status-label">Paid revenue</span><div class="summary-number" id="summaryRevenue">$0.00</div><p class="summary-note">Portal-tracked paid orders</p></article>
+<article class="status-card"><span class="status-label">Paid orders</span><div class="summary-number" id="summaryOrders">0</div><p class="summary-note">Successful payments in the portal</p></article>
+<article class="status-card"><span class="status-label">Active work</span><div class="summary-number" id="summaryActive">0</div><p class="summary-note">Projects not complete or cancelled</p></article>
+<article class="status-card"><span class="status-label">Clients</span><div class="summary-number" id="summaryClients">0</div><p class="summary-note">Unique client emails</p></article>
+</section>
 
 <div id="errorBox" class="error-box hidden"></div>
 <div id="successBox" class="success-box hidden"></div>
@@ -98,10 +111,22 @@ async function api(url,options){
   return d;
 }
 
+function renderOwnerSummary(){
+  const paid=projects.filter(p=>p.payment_status==='paid');
+  const revenue=paid.reduce((sum,p)=>sum+(Number(p.amount_total_cents)||0),0);
+  const active=projects.filter(p=>!['complete','cancelled'].includes(String(p.project_status||'pending'))).length;
+  const clients=new Set(projects.map(p=>String(p.customer_email||'').trim().toLowerCase()).filter(Boolean));
+  document.getElementById('summaryRevenue').textContent=money(revenue);
+  document.getElementById('summaryOrders').textContent=String(paid.length);
+  document.getElementById('summaryActive').textContent=String(active);
+  document.getElementById('summaryClients').textContent=String(clients.size);
+}
+
 async function loadProjects(preferId){
   clearMessages();
   const data=await api('/api/projects?scope=admin');
   projects=data.projects||[];
+  renderOwnerSummary();
   if(!projects.length){
     dashboard.classList.add('hidden');emptyState.classList.remove('hidden');
     select.innerHTML='<option>No projects</option>';return;

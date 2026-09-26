@@ -23,12 +23,21 @@ test('royalty projects stay locked before execution', () => {
   }
 });
 
-test('royalty projects unlock after execution', () => {
-  const result = finalDeliveryGate({
+test('executed royalty projects stay locked until both parties sign', () => {
+  const missingOwner = finalDeliveryGate({
     royaltyParticipationRequired: true,
     royaltyAgreementStatus: 'executed',
+    clientSignedAt: '2026-09-26T05:00:00Z',
   });
-  assert.equal(result.allowed, true);
+  assert.equal(missingOwner.allowed, false);
+
+  const complete = finalDeliveryGate({
+    royaltyParticipationRequired: true,
+    royaltyAgreementStatus: 'executed',
+    clientSignedAt: '2026-09-26T05:00:00Z',
+    ownerSignedAt: '2026-09-26T05:01:00Z',
+  });
+  assert.equal(complete.allowed, true);
 });
 
 test('percentages must stay between zero and one hundred', () => {

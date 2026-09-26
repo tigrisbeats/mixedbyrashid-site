@@ -1,16 +1,13 @@
 import Stripe from 'stripe';
 import { getDb } from '../lib/db.mjs';
 
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: { 'content-type': 'application/json; charset=utf-8' },
-  body: JSON.stringify(body),
-});
+const json = (status, body) => Response.json(body, { status });
 
-function rawBody(event) {
-  return event.isBase64Encoded
-    ? Buffer.from(event.body || '', 'base64')
-    : event.body || '';
+function sandboxAllowed() {
+  return (
+    Netlify.env.get('STRIPE_SANDBOX_ENABLED') === 'true' &&
+    Netlify.env.get('CONTEXT') === 'deploy-preview'
+  );
 }
 
 async function markPaid(session) {
@@ -19,24 +16,35 @@ async function markPaid(session) {
     session.customer_email ||
     session.metadata?.customer_email;
 
-  if (!email) throw new Error('Completed checkout has no customer email.');
+  if (!email) {
+    throw new Error('Completed checkout has no customer email.');
+  }
 
   const service = session.metadata?.service;
   if (!['studio', 'mixing', 'mastering'].includes(service)) {
-    throw new Error(`Unsupported checkout service: ${service || 'missing'}.`);
+    throw new Error(
+      `Unsupported checkout service: ${service || 'missing'}.`
+    );
   }
 
   const sessionHours = session.metadata?.session_hours
     ? Number(session.metadata.session_hours)
     : null;
+
   const sessionTotalCents = session.metadata?.session_total_cents
     ? Number(session.metadata.session_total_cents)
     : null;
+
   const includedRevisions = session.metadata?.included_revisions
     ? Number(session.metadata.included_revisions)
-    : (service === 'mixing' ? 2 : service === 'mastering' ? 1 : 0);
+    : service === 'mixing'
+      ? 2
+      : service === 'mastering'
+        ? 1
+        : 0;
 
   const sql = getDb();
+
   await sql`
     insert into portal_orders (
       customer_email,
@@ -60,7 +68,9 @@ async function markPaid(session) {
       'paid',
       'ready',
       ${session.id},
-      ${typeof session.payment_intent === 'string' ? session.payment_intent : null},
+      ${typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : null},
       ${session.amount_total || 0},
       ${sessionHours},
       ${sessionTotalCents},
@@ -85,25 +95,40 @@ async function markPaid(session) {
   `;
 }
 
-export async function handler(event) {
-  if (event.httpMethod !== 'POST') {
+export default async (request) => {
+  if (request.method !== 'POST') {
     return json(405, { error: 'Method not allowed.' });
   }
 
-  const secretKey = process.env.STRIPE_TEST_SECRET_KEY;
-  const signingSecret = process.env.STRIPE_PREVIEW_SIGNING_SECRET;
+  if (!sandboxAllowed()) {
+    return json(503, {
+      error: 'Stripe preview webhook is disabled in this context.',
+    });
+  }
+
+  const secretKey = Netlify.env.get('STRIPE_TEST_SECRET_KEY');
+  const signingSecret = Netlify.env.get('STRIPE_PREVIEW_SIGNING_SECRET');
 
   if (!secretKey || !signingSecret) {
-    return json(503, { error: 'Stripe preview webhook is not configured.' });
+    return json(503, {
+      error: 'Stripe preview webhook is not configured.',
+    });
   }
 
   try {
+    const signature = request.headers.get('stripe-signature');
+
+    if (!signature) {
+      return json(400, {
+        error: 'Missing Stripe signature.',
+      });
+    }
+
+    const rawBody = await request.text();
     const stripe = new Stripe(secretKey);
-    const signature = event.headers?.['stripe-signature'] || event.headers?.['Stripe-Signature'];
-    if (!signature) return json(400, { error: 'Missing Stripe signature.' });
 
     const stripeEvent = stripe.webhooks.constructEvent(
-      rawBody(event),
+      rawBody,
       signature,
       signingSecret
     );
@@ -118,6 +143,13 @@ export async function handler(event) {
     return json(200, { received: true });
   } catch (error) {
     console.error('stripe-preview-webhook', error);
-    return json(400, { error: 'Webhook validation or processing failed.' });
+
+    return json(400, {
+      error: 'Webhook validation or processing failed.',
+    });
   }
-}
+};
+
+export const config = {
+  path: '/api/stripe-preview',
+};

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Royalty & Credits | MixedByRashid</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav><div class="shell nav-inner"><a class="brand" href="index.html">Mixed<span>By</span>Rashid</a><a class="btn secondary" href="index.html">Back Home</a></div></nav>
+<main class="shell section">
+  <div class="section-head">
+    <h2>Royalty & Credits</h2>
+    <p>This step is used only when a project includes an agreed royalty, producer/mixer point, songwriting split, SoundExchange direction, or another negotiated participation. Standard flat-fee mixing and mastering orders do not automatically create royalties.</p>
+  </div>
+
+  <div class="panel" style="margin-bottom:16px">
+    <h3>Legal-review status</h3>
+    <p><strong>Non-production draft.</strong> The agreement template must be reviewed and approved by an entertainment attorney before client signatures can be activated. The portal will not treat this screen as a production contract until that approval is recorded.</p>
+  </div>
+
+  <div class="split">
+    <div class="panel">
+      <h3>Agreement setup</h3>
+      <label>Agreement type<br>
+        <select disabled>
+          <option>Mixer points / royalty participation</option>
+          <option>Producer points / royalty participation</option>
+          <option>Songwriting split</option>
+          <option>SoundExchange Letter of Direction</option>
+          <option>Custom agreement</option>
+        </select>
+      </label>
+      <p>The project record stores the agreement version, status, royalty basis, notes, and attorney-review status.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Participants & splits</h3>
+      <p>Each participant can store legal/display name, role, royalty percentage, composition share, master share, PRO affiliation, IPI/CAE, and SoundExchange payee information where applicable.</p>
+      <p>Declared full-song composition splits are validated to total 100% before execution.</p>
+    </div>
+  </div>
+
+  <div class="split" style="margin-top:16px">
+    <div class="panel">
+      <h3>Credits & release metadata</h3>
+      <ul>
+        <li>Required credit name and role</li>
+        <li>Artist and song title</li>
+        <li>ISRC and UPC when available</li>
+        <li>Release date, label, and distributor</li>
+        <li>Client confirmation of required credits</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h3>Signature & delivery gate</h3>
+      <p>For royalty-participating projects, final delivery remains locked until the agreement is marked executed and both the client and MixedByRashid signatures are recorded.</p>
+      <p>Agreement events are logged for creation, updates, sending, signatures, execution, and voiding.</p>
+      <button class="btn primary" type="button" disabled>Signature Flow Activates After Attorney Approval + Backend Wiring</button>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <h3>Project status flow</h3>
+    <p><strong>Draft → Pending Client → Pending MixedByRashid → Executed → Final Delivery Unlocked</strong></p>
+    <p>If the agreement is voided or incomplete, final delivery stays locked for that royalty-participating project.</p>
+  </div>
+</main>
+</body>
+</html>

@@ -4,14 +4,11 @@ import { projectSubfolders } from '../lib/storage-rules.mjs';
 import { listDropboxFolder } from '../lib/dropbox.mjs';
 import { finalDeliveryGate } from '../lib/royalty-rules.mjs';
 
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: { 'content-type': 'application/json; charset=utf-8' },
-  body: JSON.stringify(body),
-});
+const json = (status, body) => Response.json(body, { status });
 
 function shapeFile(entry, role) {
   if (entry?.['.tag'] !== 'file') return null;
+
   return {
     id: entry.id,
     name: entry.name,
@@ -38,6 +35,7 @@ async function projectRow(sql, orderId) {
     where o.id = ${orderId}
     limit 1
   `;
+
   return rows[0];
 }
 
@@ -51,27 +49,32 @@ async function listRole(path, role) {
   }
 }
 
-export async function handler(event, context) {
+export default async (request) => {
   try {
-    if (event.httpMethod !== 'GET') {
+    if (request.method !== 'GET') {
       return json(405, { error: 'Method not allowed.' });
     }
 
-    const user = portalUser(context);
+    const user = await portalUser();
+    const url = new URL(request.url);
     const orderId =
-      event.queryStringParameters?.order_id ||
-      event.queryStringParameters?.orderId;
+      url.searchParams.get('order_id') ||
+      url.searchParams.get('orderId');
 
     if (!orderId) return json(400, { error: 'orderId is required.' });
 
     const sql = getDb();
     const project = await projectRow(sql, orderId);
+
     if (!project) return json(404, { error: 'Project not found.' });
 
     assertOrderAccess(project, user);
 
     if (!project.project_folder_path) {
-      return json(200, { files: [], storage_ready: false });
+      return json(200, {
+        files: {},
+        storage_ready: false,
+      });
     }
 
     const folders = projectSubfolders(project.project_folder_path);
@@ -106,7 +109,13 @@ export async function handler(event, context) {
   } catch (error) {
     console.error('project-files', error);
     return json(error.statusCode || 500, {
-      error: error.statusCode ? error.message : 'Unable to load project files.',
+      error: error.statusCode
+        ? error.message
+        : 'Unable to load project files.',
     });
   }
-}
+};
+
+export const config = {
+  path: '/api/project-files',
+};

@@ -88,3 +88,15 @@ test('production Dropbox storage requires explicit enable flag and all credentia
   assert.equal(ready.enabled, true);
   assert.equal(ready.configured, true);
 });
+
+
+test('Dropbox storage can use the public app key fallback', () => {
+  const ready = resolveStorageRuntime({
+    CONTEXT: 'production',
+    PRIVATE_STORAGE_ENABLED: 'true',
+    DROPBOX_APP_SECRET: 'secret',
+    DROPBOX_REFRESH_TOKEN: 'refresh',
+  });
+  assert.equal(ready.appKey, 'tu7seery1let8fv');
+  assert.equal(ready.configured, true);
+});

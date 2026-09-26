@@ -51,7 +51,12 @@ export function assertSplitTotal(participants = [], field, expected = 100) {
   return true;
 }
 
-export function finalDeliveryGate({ royaltyParticipationRequired = false, royaltyAgreementStatus = 'not_required' } = {}) {
+export function finalDeliveryGate({
+  royaltyParticipationRequired = false,
+  royaltyAgreementStatus = 'not_required',
+  clientSignedAt = null,
+  ownerSignedAt = null,
+} = {}) {
   if (!royaltyParticipationRequired) {
     return { allowed: true, reason: 'No royalty agreement is required for this project.' };
   }
@@ -67,7 +72,14 @@ export function finalDeliveryGate({ royaltyParticipationRequired = false, royalt
     };
   }
 
-  return { allowed: true, reason: 'Required royalty agreement is fully executed.' };
+  if (!clientSignedAt || !ownerSignedAt) {
+    return {
+      allowed: false,
+      reason: 'Final delivery is locked until both the client and MixedByRashid have signed the royalty agreement.',
+    };
+  }
+
+  return { allowed: true, reason: 'Required royalty agreement is fully executed and signed by both parties.' };
 }
 
 export function canActivateRoyaltyTemplate({ attorneyReviewStatus } = {}) {

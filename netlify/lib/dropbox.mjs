@@ -1,22 +1,33 @@
+import { storageRuntimeConfig } from './runtime-config.mjs';
+
 const API = 'https://api.dropboxapi.com/2';
 
-function requireEnv(name) {
-  const value = Netlify.env.get(name);
-  if (!value) throw new Error(`Missing required environment variable: ${name}`);
-  return value;
+export function assertDropboxReady() {
+  const runtime = storageRuntimeConfig();
+
+  if (!runtime.enabled) {
+    const error = new Error('Private project storage is not enabled yet.');
+    error.statusCode = 503;
+    throw error;
+  }
+
+  if (!runtime.configured) {
+    const error = new Error('Private project storage is not fully configured.');
+    error.statusCode = 503;
+    throw error;
+  }
+
+  return runtime;
 }
 
 export async function getDropboxAccessToken(fetchImpl = fetch) {
-  const appKey = requireEnv('DROPBOX_APP_KEY');
-  const appSecret = requireEnv('DROPBOX_APP_SECRET');
-  const refreshToken = requireEnv('DROPBOX_REFRESH_TOKEN');
-
+  const runtime = assertDropboxReady();
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
-    refresh_token: refreshToken,
+    refresh_token: runtime.refreshToken,
   });
 
-  const auth = Buffer.from(`${appKey}:${appSecret}`).toString('base64');
+  const auth = Buffer.from(`${runtime.appKey}:${runtime.appSecret}`).toString('base64');
   const response = await fetchImpl('https://api.dropboxapi.com/oauth2/token', {
     method: 'POST',
     headers: {
@@ -81,7 +92,6 @@ export async function createDropboxFileRequest({ title, destination, description
 export async function deleteDropboxPath(path, options = {}) {
   return dropboxRpc('files/delete_v2', { path }, options);
 }
-
 
 export async function listDropboxFolder(path, options = {}) {
   const entries = [];

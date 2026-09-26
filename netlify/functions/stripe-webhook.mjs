@@ -11,15 +11,15 @@ export default async (request) => {
 
   const runtime = paymentRuntimeConfig();
 
-  if (runtime.context !== 'deploy-preview' || !runtime.enabled) {
+  if (runtime.context !== 'production' || !runtime.enabled) {
     return json(503, {
-      error: 'Stripe preview webhook is disabled in this context.',
+      error: 'Production Stripe webhook is disabled.',
     });
   }
 
   if (!runtime.configured) {
     return json(503, {
-      error: 'Stripe preview webhook is not fully configured.',
+      error: 'Production Stripe webhook is not fully configured.',
     });
   }
 
@@ -41,7 +41,7 @@ export default async (request) => {
     const result = await handleStripeCheckoutEvent(stripeEvent);
     return json(200, { received: true, ...result });
   } catch (error) {
-    console.error('stripe-preview-webhook', error);
+    console.error('stripe-webhook', error);
     return json(400, {
       error: 'Webhook validation or processing failed.',
     });
@@ -49,5 +49,5 @@ export default async (request) => {
 };
 
 export const config = {
-  path: '/api/stripe-preview',
+  path: '/api/stripe-webhook',
 };

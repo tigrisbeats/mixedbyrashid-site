@@ -7,11 +7,7 @@ import {
 } from '../lib/dropbox.mjs';
 import { finalDeliveryGate } from '../lib/royalty-rules.mjs';
 
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: { 'content-type': 'application/json; charset=utf-8' },
-  body: JSON.stringify(body),
-});
+const json = (status, body) => Response.json(body, { status });
 
 async function projectRow(sql, orderId) {
   const rows = await sql`
@@ -30,6 +26,7 @@ async function projectRow(sql, orderId) {
     where o.id = ${orderId}
     limit 1
   `;
+
   return rows[0];
 }
 
@@ -55,6 +52,7 @@ async function findAllowedFile({ project, user, fileId }) {
 
   for (const path of paths) {
     let entries = [];
+
     try {
       entries = await listDropboxFolder(path);
     } catch (error) {
@@ -65,43 +63,53 @@ async function findAllowedFile({ project, user, fileId }) {
     const match = entries.find(
       (entry) => entry?.['.tag'] === 'file' && entry.id === fileId
     );
+
     if (match) return { entry: match, gate };
   }
 
   return { entry: null, gate };
 }
 
-export async function handler(event, context) {
+export default async (request) => {
   try {
-    if (event.httpMethod !== 'GET') {
+    if (request.method !== 'GET') {
       return json(405, { error: 'Method not allowed.' });
     }
 
-    const user = portalUser(context);
+    const user = await portalUser();
+    const url = new URL(request.url);
     const orderId =
-      event.queryStringParameters?.order_id ||
-      event.queryStringParameters?.orderId;
+      url.searchParams.get('order_id') ||
+      url.searchParams.get('orderId');
     const fileId =
-      event.queryStringParameters?.file_id ||
-      event.queryStringParameters?.fileId;
+      url.searchParams.get('file_id') ||
+      url.searchParams.get('fileId');
 
     if (!orderId || !fileId) {
       return json(400, { error: 'orderId and fileId are required.' });
     }
+
     if (!String(fileId).startsWith('id:')) {
       return json(400, { error: 'Invalid Dropbox file id.' });
     }
 
     const sql = getDb();
     const project = await projectRow(sql, orderId);
+
     if (!project) return json(404, { error: 'Project not found.' });
 
     assertOrderAccess(project, user);
+
     if (!project.project_folder_path) {
       return json(404, { error: 'Project storage is not ready.' });
     }
 
-    const { entry, gate } = await findAllowedFile({ project, user, fileId });
+    const { entry, gate } = await findAllowedFile({
+      project,
+      user,
+      fileId,
+    });
+
     if (!entry) {
       return json(404, {
         error: gate.allowed
@@ -111,6 +119,7 @@ export async function handler(event, context) {
     }
 
     const temporary = await getDropboxTemporaryLink(entry.id);
+
     return json(200, {
       file: {
         id: entry.id,
@@ -123,7 +132,13 @@ export async function handler(event, context) {
   } catch (error) {
     console.error('project-download', error);
     return json(error.statusCode || 500, {
-      error: error.statusCode ? error.message : 'Unable to create download link.',
+      error: error.statusCode
+        ? error.message
+        : 'Unable to create download link.',
     });
   }
-}
+};
+
+export const config = {
+  path: '/api/project-download',
+};

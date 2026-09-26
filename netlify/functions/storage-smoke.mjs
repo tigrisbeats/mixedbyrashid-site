@@ -53,11 +53,6 @@ export default async (request) => {
     return json(405, { error: 'Method not allowed.' });
   }
 
-  const context = Netlify.env.get('PORTAL_CONTEXT') || Netlify.env.get('CONTEXT') || '';
-  if (context !== 'production') {
-    return json(404, { error: 'Not found.' });
-  }
-
   const trigger = request.headers.get('x-mixedbyrashid-storage-smoke') || '';
   if (!safeEqual('storage-e2e-20260926-v1', trigger)) {
     return json(404, { error: 'Not found.' });

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Client Login | MixedByRashid</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="portal.css">
+<style>
+.auth-wrap{max-width:560px;margin:7vh auto}.auth-card{border:1px solid var(--line);border-radius:20px;padding:22px;background:#111116}
+.auth-grid{display:grid;gap:12px}.auth-grid input{width:100%;box-sizing:border-box;background:#0d0d11;color:#fff;border:1px solid var(--line);border-radius:12px;padding:13px;font:inherit}
+.note{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body class="portal-page">
+<nav class="portal-nav"><div class="shell nav-inner"><a class="brand" href="index.html">Mixed<span>By</span>Rashid</a><a class="btn secondary" href="index.html">Back Home</a></div></nav>
+<main class="shell auth-wrap">
+<section class="auth-card">
+<div class="eyebrow">Client Portal</div>
+<h1>Open your project.</h1>
+<p>Use the same email address you used at checkout. Paid orders connect to your account by email.</p>
+<form class="auth-grid" method="post" action="/api/portal-login">
+<input name="email" type="email" autocomplete="email" placeholder="Email" required>
+<input name="password" type="password" autocomplete="current-password" placeholder="Password" required>
+<input name="next" type="hidden" value="/client">
+<button class="btn" type="submit">Log in</button>
+</form>
+<p class="note">Need an account? <a href="/signup">Create one here.</a></p>
+</section>
+</main>
+</body>
+</html>

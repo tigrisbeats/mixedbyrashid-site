@@ -81,6 +81,8 @@ export default async (request) => {
     cleanup: false,
   };
 
+  let failure = null;
+
   try {
     const accessToken = await getDropboxAccessToken();
     checks.token_refresh = Boolean(accessToken);
@@ -121,15 +123,9 @@ export default async (request) => {
       throw new Error('Dropbox temporary download did not return the expected file.');
     }
     checks.temporary_download = true;
-
-    return json(200, { ok: true, checks });
   } catch (error) {
     console.error('storage-smoke', error);
-    return json(500, {
-      ok: false,
-      checks,
-      error: 'Storage smoke test failed.',
-    });
+    failure = error;
   } finally {
     try {
       if (requestId) {
@@ -153,6 +149,16 @@ export default async (request) => {
       }
     }
   }
+
+  if (failure) {
+    return json(500, {
+      ok: false,
+      checks,
+      error: 'Storage smoke test failed.',
+    });
+  }
+
+  return json(200, { ok: true, checks });
 };
 
 export const config = {

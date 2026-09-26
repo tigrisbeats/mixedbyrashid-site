@@ -38,8 +38,22 @@ jobs:
 
           grep -q '"ok":true' /tmp/portal-health.json
 
-          curl -fsS -o /tmp/login.html "$BASE/login"
-          grep -q "Open your project" /tmp/login.html
+          page_ready=0
+          for attempt in $(seq 1 18); do
+            if curl -fsS -o /tmp/login.html "$BASE/login" \
+              && grep -q "Open your project" /tmp/login.html \
+              && grep -q 'id="nextPath"' /tmp/login.html; then
+              page_ready=1
+              break
+            fi
+            echo "Waiting for the current Netlify production deploy (attempt $attempt)"
+            sleep 10
+          done
+
+          if [ "$page_ready" != "1" ]; then
+            echo "The current login page did not become available."
+            exit 1
+          fi
 
           curl -fsS -o /tmp/verify-email.html "$BASE/verify-email"
           grep -q "Check your email" /tmp/verify-email.html

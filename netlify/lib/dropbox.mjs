@@ -81,3 +81,28 @@ export async function createDropboxFileRequest({ title, destination, description
 export async function deleteDropboxPath(path, options = {}) {
   return dropboxRpc('files/delete_v2', { path }, options);
 }
+
+
+export async function listDropboxFolder(path, options = {}) {
+  const entries = [];
+  let page = await dropboxRpc('files/list_folder', {
+    path,
+    recursive: false,
+    include_deleted: false,
+    include_media_info: false,
+    include_mounted_folders: true,
+  }, options);
+
+  entries.push(...(page.entries || []));
+  while (page.has_more) {
+    page = await dropboxRpc('files/list_folder/continue', {
+      cursor: page.cursor,
+    }, options);
+    entries.push(...(page.entries || []));
+  }
+  return entries;
+}
+
+export async function getDropboxTemporaryLink(path, options = {}) {
+  return dropboxRpc('files/get_temporary_link', { path }, options);
+}

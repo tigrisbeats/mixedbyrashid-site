@@ -1,6 +1,8 @@
-export function portalUser(context) {
-  const user = context?.clientContext?.user;
-  if (!user?.sub) {
+import { getUser } from '@netlify/identity';
+
+export async function portalUser() {
+  const user = await getUser();
+  if (!user?.id) {
     const error = new Error('Authentication required.');
     error.statusCode = 401;
     throw error;
@@ -9,21 +11,20 @@ export function portalUser(context) {
 }
 
 export function isPortalAdmin(user) {
-  const roles = user?.app_metadata?.roles || [];
-  if (Array.isArray(roles) && roles.includes('admin')) return true;
+  if (Array.isArray(user?.roles) && user.roles.includes('admin')) return true;
 
-  const allowed = String(process.env.ADMIN_USER_IDS || '')
+  const allowed = String(Netlify.env.get('ADMIN_USER_IDS') || '')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
 
-  return allowed.includes(user?.sub);
+  return allowed.includes(user?.id);
 }
 
 export function assertOrderAccess(order, user) {
   if (isPortalAdmin(user)) return true;
 
-  const userIdMatches = order.user_id && order.user_id === user.sub;
+  const userIdMatches = order.user_id && order.user_id === user.id;
   const emailMatches =
     order.customer_email &&
     user.email &&

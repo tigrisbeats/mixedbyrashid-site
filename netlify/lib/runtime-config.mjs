@@ -63,7 +63,7 @@ export function resolveStorageRuntime(values = {}) {
     ? bool(values.PRIVATE_STORAGE_ENABLED)
     : bool(values.PRIVATE_STORAGE_ENABLED) || context === 'deploy-preview';
 
-  const appKey = String(values.DROPBOX_APP_KEY || '').trim();
+  const appKey = String(values.DROPBOX_APP_KEY || 'tu7seery1let8fv').trim();
   const appSecret = String(values.DROPBOX_APP_SECRET || '').trim();
   const refreshToken = String(values.DROPBOX_REFRESH_TOKEN || '').trim();
 

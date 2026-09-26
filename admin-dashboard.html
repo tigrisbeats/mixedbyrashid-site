@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Dashboard | MixedByRashid</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav><div class="shell nav-inner"><a class="brand" href="index.html">Mixed<span>By</span>Rashid</a><a class="btn secondary" href="index.html">Back Home</a></div></nav>
+<main class="shell section">
+  <div class="section-head">
+    <h2>Admin Dashboard</h2>
+    <p>One place to verify payment, review project files, manage revisions, confirm credits, execute royalty paperwork, and deliver finals.</p>
+  </div>
+
+  <div class="split">
+    <div class="panel">
+      <h3>Order controls</h3>
+      <p><strong>Payment:</strong> Pending / Paid</p>
+      <p><strong>Project:</strong> Pending / In progress / Revision / Complete</p>
+      <p><strong>Storage:</strong> Project-specific client folder</p>
+      <button class="btn secondary" type="button" disabled>Live Order Data Connects With Backend</button>
+    </div>
+    <div class="panel">
+      <h3>Royalty delivery gate</h3>
+      <p><strong>Royalty participation:</strong> Required or not required</p>
+      <p><strong>Agreement:</strong> Draft / Pending Client / Pending MixedByRashid / Executed / Void</p>
+      <p><strong>Final delivery:</strong> Locked until both signatures are recorded when royalty participation is required.</p>
+      <a class="btn secondary" href="royalty-agreement.html">Review Royalty & Credits</a>
+    </div>
+  </div>
+
+  <div class="split" style="margin-top:16px">
+    <div class="panel">
+      <h3>Project files</h3>
+      <ul>
+        <li>Download source stems and references</li>
+        <li>Upload current mix/master</li>
+        <li>Upload A/B alternates</li>
+        <li>Upload revision versions</li>
+        <li>Upload final delivery</li>
+      </ul>
+      <button class="btn primary" type="button" disabled>File Actions Connect With Private Storage Backend</button>
+    </div>
+    <div class="panel">
+      <h3>Credits, splits & release data</h3>
+      <ul>
+        <li>Participant names and roles</li>
+        <li>Royalty, composition, and master percentages</li>
+        <li>Required credits</li>
+        <li>PRO / IPI / CAE data</li>
+        <li>ISRC, UPC, release date, label, distributor</li>
+      </ul>
+      <button class="btn secondary" type="button" disabled>Metadata Editor Connects With Backend</button>
+    </div>
+  </div>
+</main>
+</body>
+</html>

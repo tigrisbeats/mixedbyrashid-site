@@ -44,6 +44,14 @@ jobs:
           curl -fsS -o /tmp/verify-email.html "$BASE/verify-email"
           grep -q "Check your email" /tmp/verify-email.html
 
+          curl -fsS -o /tmp/forgot-password.html "$BASE/forgot-password"
+          grep -q "Reset your password" /tmp/forgot-password.html
+
+          curl -fsS -o /tmp/reset-password.html "$BASE/reset-password"
+          grep -q "Choose a new password" /tmp/reset-password.html
+
+          grep -q "Forgot password?" /tmp/login.html
+
           curl -fsS -o /tmp/book.html "$BASE/book"
           grep -q "Dallas, Texas • Studio Booking" /tmp/book.html
 

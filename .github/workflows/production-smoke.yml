@@ -92,3 +92,13 @@ jobs:
             --data '{"service":"studio","hours":2}' \
             "$BASE/api/create-checkout" || true)
           test "$checkout_code" = "503"
+
+          webhook_code=$(curl -sS \
+            -H "Content-Type: application/json" \
+            -o /tmp/webhook-invalid.json \
+            -w "%{http_code}" \
+            -X POST \
+            --data '{}' \
+            "$BASE/api/stripe-webhook" || true)
+          test "$webhook_code" = "400"
+          grep -q "Invalid Stripe signature" /tmp/webhook-invalid.json

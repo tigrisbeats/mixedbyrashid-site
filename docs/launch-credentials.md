@@ -5,7 +5,7 @@ Never commit credential values to Git. Store them only in Netlify environment va
 ## Current safety switches
 
 - `PAYMENTS_ENABLED=false` keeps custom production Checkout Sessions disabled.
-- `STRIPE_LIVE_WEBHOOK_ENABLED=false` keeps live webhook fulfillment disabled until the signing secret is configured and verified.
+- `STRIPE_LIVE_WEBHOOK_ENABLED=true` allows hosted Stripe Payment Link completion events to create/update portal orders.
 - `MIXING_ENABLED=false` until private storage and the full project flow are verified.
 - `PRIVATE_STORAGE_ENABLED=false` until Dropbox credentials and file operations are verified.
 - `STRIPE_SANDBOX_ENABLED=true` for deploy previews only; production ignores this flag.
@@ -75,8 +75,8 @@ The Dropbox OAuth authorization must request offline access so the token exchang
 
 1. Verify Stripe sandbox Checkout -> signed webhook -> `portal_orders` paid/ready state.
 2. Verify Dropbox project provisioning -> file request -> file listing -> temporary link -> cleanup.
-3. Configure and verify the Stripe live webhook signing secret.
-4. Set `STRIPE_LIVE_WEBHOOK_ENABLED=true` so hosted Stripe Payment Link events can create/update portal orders while `PAYMENTS_ENABLED=false` keeps custom checkout disabled.
+3. Stripe live webhook signing is configured and the endpoint is enabled.
+4. Keep `STRIPE_LIVE_WEBHOOK_ENABLED=true` so hosted Stripe Payment Link events can create/update portal orders while `PAYMENTS_ENABLED=false` keeps custom checkout disabled.
 5. Enable `PAYMENTS_ENABLED=true` only if custom production Checkout Sessions are intentionally launched later.
 6. Set `PRIVATE_STORAGE_ENABLED=true` after storage verification.
 7. Set `MIXING_ENABLED=true` only when the complete mixing/mastering intake and delivery path is ready for customers.

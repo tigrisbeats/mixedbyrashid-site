@@ -29,7 +29,7 @@ function parseBody(event) {
 
 async function getOrder(sql, orderId) {
   const rows = await sql`
-    select id, user_id, customer_email, service, status
+    select id, user_id, customer_email, service, status, payment_status, project_status
     from portal_orders
     where id = ${orderId}
     limit 1
@@ -136,7 +136,7 @@ export async function handler(event, context) {
       return json(409, { error: 'Private audio storage is only provisioned for mixing or mastering orders.' });
     }
 
-    if (!['paid', 'in_progress', 'revision', 'complete'].includes(order.status)) {
+    if (order.payment_status !== 'paid') {
       return json(409, { error: 'Payment must be verified before project storage is created.' });
     }
 

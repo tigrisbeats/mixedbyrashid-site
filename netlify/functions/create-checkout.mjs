@@ -6,6 +6,7 @@ import {
   MIN_STUDIO_HOURS,
   MAX_AUTO_STUDIO_HOURS,
 } from '../lib/portal-rules.mjs';
+import { paymentRuntimeConfig } from '../lib/runtime-config.mjs';
 
 const json = (status, body) => Response.json(body, { status });
 
@@ -19,12 +20,10 @@ async function parseBody(request) {
   }
 }
 
-function sandboxAllowed() {
-  const context = Netlify.env.get('CONTEXT') || '';
-  return (
-    Netlify.env.get('STRIPE_SANDBOX_ENABLED') === 'true' &&
-    context === 'deploy-preview'
-  );
+function audioServiceEnabled(runtime, service) {
+  if (!['mixing', 'mastering'].includes(service)) return true;
+  if (runtime.context !== 'production') return true;
+  return Netlify.env.get('MIXING_ENABLED') === 'true';
 }
 
 export default async (request) => {
@@ -35,29 +34,40 @@ export default async (request) => {
 
     verifyRequestOrigin(request);
 
-    if (!sandboxAllowed()) {
+    const runtime = paymentRuntimeConfig();
+
+    if (!runtime.enabled) {
       return json(503, {
-        error: 'Sandbox checkout is disabled in this context.',
+        error: runtime.context === 'production'
+          ? 'Online payments are not enabled yet.'
+          : 'Stripe sandbox checkout is disabled in this context.',
       });
     }
 
-    const secretKey = Netlify.env.get('STRIPE_TEST_SECRET_KEY');
-    if (!secretKey) {
+    if (!runtime.configured) {
       return json(503, {
-        error: 'Stripe sandbox secret is not configured.',
+        error: runtime.context === 'production'
+          ? 'Production payments are not fully configured.'
+          : 'Stripe sandbox is not fully configured.',
       });
     }
 
-    const stripe = new Stripe(secretKey);
+    const stripe = new Stripe(runtime.secretKey);
     const body = await parseBody(request);
     const service = String(body.service || '').trim();
     const email = String(body.email || '').trim() || undefined;
     const baseUrl = new URL(request.url).origin;
 
+    if (!audioServiceEnabled(runtime, service)) {
+      return json(503, {
+        error: 'Online mixing and mastering orders are not enabled yet.',
+      });
+    }
+
     let amountCents;
     let name;
     let successPath;
-    let metadata = { service };
+    let metadata = { service, checkout_mode: runtime.mode };
 
     if (service === 'studio') {
       const hours = Number(body.hours);
@@ -79,6 +89,7 @@ export default async (request) => {
 
       metadata = {
         service,
+        checkout_mode: runtime.mode,
         session_hours: String(hours),
         session_total_cents: String(sessionTotalCents),
         deposit_cents: String(amountCents),
@@ -108,6 +119,7 @@ export default async (request) => {
       name = `MixedByRashid ${label} - ${quantity} ${songWord}`;
       metadata = {
         service,
+        checkout_mode: runtime.mode,
         quantity: String(quantity),
         included_revisions: String(includedRevisions),
       };
@@ -151,6 +163,7 @@ export default async (request) => {
       session_id: session.id,
       amount_cents: amountCents,
       service,
+      mode: runtime.mode,
       metadata,
     });
   } catch (error) {

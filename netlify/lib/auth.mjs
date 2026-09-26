@@ -13,12 +13,19 @@ export async function portalUser() {
 export function isPortalAdmin(user) {
   if (Array.isArray(user?.roles) && user.roles.includes('admin')) return true;
 
-  const allowed = String(Netlify.env.get('ADMIN_USER_IDS') || '')
+  const allowedIds = String(Netlify.env.get('ADMIN_USER_IDS') || '')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
 
-  return allowed.includes(user?.id);
+  if (allowedIds.includes(user?.id)) return true;
+
+  const allowedEmails = String(Netlify.env.get('ADMIN_EMAILS') || '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  return Boolean(user?.email && allowedEmails.includes(user.email.toLowerCase()));
 }
 
 export function assertOrderAccess(order, user) {

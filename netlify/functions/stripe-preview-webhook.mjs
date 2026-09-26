@@ -72,7 +72,7 @@ async function markPaid(session) {
     set customer_email = excluded.customer_email,
         payment_status = 'paid',
         project_status = case
-          when portal_orders.project_status = 'pending then 'ready'
+          when portal_orders.project_status = 'pending' then 'ready'
           else portal_orders.project_status
         end,
         stripe_payment_intent_id = excluded.stripe_payment_intent_id,
@@ -85,4 +85,39 @@ async function markPaid(session) {
   `;
 }
 
-export async function handler(e
+export async function handler(event) {
+  if (event.httpMethod !== 'POST') {
+    return json(405, { error: 'Method not allowed.' });
+  }
+
+  const secretKey = process.env.STRIPE_TEST_SECRET_KEY;
+  const signingSecret = process.env.STRIPE_PREVIEW_SIGNING_SECRET;
+
+  if (!secretKey || !signingSecret) {
+    return json(503, { error: 'Stripe preview webhook is not configured.' });
+  }
+
+  try {
+    const stripe = new Stripe(secretKey);
+    const signature = event.headers?.['stripe-signature'] || event.headers?.['Stripe-Signature'];
+    if (!signature) return json(400, { error: 'Missing Stripe signature.' });
+
+    const stripeEvent = stripe.webhooks.constructEvent(
+      rawBody(event),
+      signature,
+      signingSecret
+    );
+
+    if (
+      stripeEvent.type === 'checkout.session.completed' ||
+      stripeEvent.type === 'checkout.session.async_payment_succeeded'
+    ) {
+      await markPaid(stripeEvent.data.object);
+    }
+
+    return json(200, { received: true });
+  } catch (error) {
+    console.error('stripe-preview-webhook', error);
+    return json(400, { error: 'Webhook validation or processing failed.' });
+  }
+}

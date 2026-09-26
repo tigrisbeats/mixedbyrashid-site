@@ -1,6 +1,8 @@
 /verify-email /verify-email.html 200
 /login      /login.html              200
-/signup     /signup.html             200
+/signup          /signup.html             200
+/forgot-password /forgot-password.html    200
+/reset-password  /reset-password.html     200
 /book       /booking.html           200
 /mixing     /mixing-intake.html     200
 /mastering  /mastering-intake.html  200

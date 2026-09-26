@@ -140,17 +140,50 @@
 
   hours.addEventListener('change', render);
 
+  const liveStudioCheckout = {
+    2: 'https://book.stripe.com/5kQ28sbSx5u85qX1GC4wM03',
+    3: 'https://book.stripe.com/00w6oIaOtf4I6v1dpk4wM04',
+    4: 'https://book.stripe.com/bJeaEY7Chg8MaLhfxs4wM05',
+    5: 'https://book.stripe.com/3cI14oe0Ff4IdXt0Cy4wM06',
+    6: 'https://book.stripe.com/dRm6oI4q5aOs5qX3OK4wM07',
+    7: 'https://book.stripe.com/00wbJ2bSx1dS7z5clg4wM08',
+    8: 'https://book.stripe.com/aFa14o9Kpe0E8D90Cy4wM09',
+    9: 'https://book.stripe.com/14A7sMg8N5u8D90Cy4wM09',
+    10: 'https://book.stripe.com/4gMeVecWB8GkcTpeto4wM0b',
+    11: 'https://book.stripe.com/5kQcN6e0F2hW8D9clg4wM0c',
+    12: 'https://book.stripe.com/4gM28s6yde0E06D0Cy4wM0d'
+  };
+
+  function liveCheckoutUrl(h){
+    const base = liveStudioCheckout[h];
+    if(!base) return null;
+    const customerEmail = email.value.trim();
+    return customerEmail
+      ? base + '?prefilled_email=' + encodeURIComponent(customerEmail)
+      : base;
+  }
+
   checkout.addEventListener('click', async () => {
     status.textContent = 'Opening secure checkoutâ¦';
     checkout.disabled = true;
 
+    const selectedHours = Number(hours.value);
+    const productionHost = location.hostname === 'mixedbyrashid.netlify.app';
+
     try {
+      if(productionHost){
+        const url = liveCheckoutUrl(selectedHours);
+        if(!url) throw new Error('Checkout is unavailable for that session length.');
+        window.location.href = url;
+        return;
+      }
+
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: {'content-type':'application/json'},
         body: JSON.stringify({
           service: 'studio',
-          hours: Number(hours.value),
+          hours: selectedHours,
           email: email.value.trim() || undefined
         })
       });

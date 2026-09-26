@@ -36,9 +36,15 @@ jobs:
           fi
 
           grep -q '"ok":true' /tmp/portal-health.json
-          curl -fsS "$BASE/login" | grep -q "Open your project"
-          curl -fsS "$BASE/verify-email" | grep -q "Check your email"
-          curl -fsS "$BASE/book" | grep -q "Dallas, Texas • Studio Booking"
+
+          curl -fsS -o /tmp/login.html "$BASE/login"
+          grep -q "Open your project" /tmp/login.html
+
+          curl -fsS -o /tmp/verify-email.html "$BASE/verify-email"
+          grep -q "Check your email" /tmp/verify-email.html
+
+          curl -fsS -o /tmp/book.html "$BASE/book"
+          grep -q "Dallas, Texas • Studio Booking" /tmp/book.html
 
           project_code=$(curl -sS -o /tmp/projects-unauth.json -w "%{http_code}" "$BASE/api/projects" || true)
           test "$project_code" = "401"

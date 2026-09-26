@@ -16,13 +16,25 @@ async function closeRequest(id) {
 
 export default async (request) => {
   const scheduleEvent = await request.json().catch(() => ({}));
+  const configuredDays = Number(Netlify.env.get('STORAGE_RETENTION_DAYS') || 0);
+
+  if (!Number.isInteger(configuredDays) || configuredDays < 1 || configuredDays > 365) {
+    console.log('storage-cleanup', {
+      skipped: true,
+      reason: 'STORAGE_RETENTION_DAYS is not configured.',
+      next_run: scheduleEvent.next_run || null,
+    });
+    return;
+  }
+
   const sql = getDb();
 
   await sql`
     update portal_project_storage s
-    set cleanup_after =
+    set retention_days = ${configuredDays},
+        cleanup_after =
           coalesce(o.completed_at, o.updated_at)
-          + (s.retention_days * interval '1 day'),
+          + (${configuredDays} * interval '1 day'),
         cleanup_status = 'scheduled',
         updated_at = now()
     from portal_orders o

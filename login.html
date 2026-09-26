@@ -22,7 +22,7 @@
 <form class="auth-grid" method="post" action="/api/portal-login">
 <input name="email" type="email" autocomplete="email" placeholder="Email" required>
 <input name="password" type="password" autocomplete="current-password" placeholder="Password" required>
-<input name="next" type="hidden" value="/client">
+<input id="nextPath" name="next" type="hidden" value="/client">
 <button class="btn" type="submit">Log in</button>
 </form>
 <p class="note">Need an account? <a href="/signup">Create one here.</a></p>
@@ -33,6 +33,11 @@
 <script>
 const q=new URLSearchParams(location.search);
 const s=document.getElementById('authStatus');
+const nextPath=document.getElementById('nextPath');
+const requestedNext=q.get('next');
+if(requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//')){
+  nextPath.value=requestedNext;
+}
 if(q.get('recovery')==='1'){
   location.replace('/reset-password');
 }else if(q.get('reset')==='1'){

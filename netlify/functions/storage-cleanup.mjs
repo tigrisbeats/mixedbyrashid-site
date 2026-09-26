@@ -26,7 +26,7 @@ export default async () => {
         updated_at = now()
     from portal_orders o
     where o.id = s.order_id
-      and o.status = 'complete'
+      and o.project_status = 'complete'
       and s.cleanup_status = 'active'
       and s.cleanup_after is null
   `;

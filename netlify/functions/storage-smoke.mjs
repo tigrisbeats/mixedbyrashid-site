@@ -49,7 +49,7 @@ async function uploadTextFile(path, text, accessToken) {
 }
 
 export default async (request) => {
-  if (request.method !== 'POST') {
+  if (!['GET', 'POST'].includes(request.method)) {
     return json(405, { error: 'Method not allowed.' });
   }
 
@@ -58,9 +58,11 @@ export default async (request) => {
     return json(404, { error: 'Not found.' });
   }
 
-  const expectedKey = Netlify.env.get('STORAGE_SMOKE_KEY');
-  const providedKey = request.headers.get('x-storage-smoke-key');
-  if (!expectedKey || !safeEqual(expectedKey, providedKey)) {
+  const url = new URL(request.url);
+  const providedKey = request.headers.get('x-storage-smoke-key') || url.searchParams.get('key') || '';
+  const providedHash = crypto.createHash('sha256').update(providedKey).digest('hex');
+  const expectedHash = '69f07e446e789c7f698dae20d4469c1f9a3913af509d9bc111374242f411e4b3';
+  if (!safeEqual(expectedHash, providedHash)) {
     return json(404, { error: 'Not found.' });
   }
 

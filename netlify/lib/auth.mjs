@@ -10,6 +10,7 @@ export async function portalUser() {
   return user;
 }
 
+// Admin access is supplied by Netlify runtime environment allowlists.
 export function isPortalAdmin(user) {
   if (Array.isArray(user?.roles) && user.roles.includes('admin')) return true;
 

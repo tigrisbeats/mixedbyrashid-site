@@ -3,99 +3,202 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin Dashboard | MixedByRashid</title>
+<title>Admin Portal | MixedByRashid</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="portal.css">
+<style>
+.project-picker{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.project-picker select{min-height:44px;background:#0d0d11;color:#fff;border:1px solid var(--line);border-radius:12px;padding:0 12px}
+.file-list{display:grid;gap:9px}.file-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:12px;background:#0d0d11}.file-row small{color:var(--muted)}
+.hidden{display:none!important}.error-box{border:1px solid #6d3535;background:#251515;border-radius:14px;padding:14px;color:#ffb3b3}.success-box{border:1px solid #315e43;background:#102018;border-radius:14px;padding:14px;color:#a7efbd}
+</style>
 </head>
 <body class="portal-page">
-<nav class="portal-nav"><div class="shell nav-inner"><a class="brand" href="index.html">Mixed<span>By</span>Rashid</a><a class="btn secondary" href="index.html">Back Home</a></div></nav>
+<nav class="portal-nav"><div class="shell nav-inner"><a class="brand" href="index.html">Mixed<span>By</span>Rashid</a><div class="portal-actions"><a class="btn secondary" href="/">Home</a><form method="post" action="/api/portal-logout"><button class="btn secondary" type="submit">Log out</button></form></div></div></nav>
 <main class="shell portal-main">
-  <header class="portal-header">
-    <div>
-      <div class="eyebrow">Admin Portal</div>
-      <h1>Project Control</h1>
-      <p>Payment, files, revisions, credits, royalty paperwork, and final delivery stay separated clearly so you always know what happened and what needs your action.</p>
-    </div>
-    <div class="portal-actions">
-      <span class="chip success"><span class="dot success"></span>Paid & ready</span>
-      <span class="chip warning"><span class="dot warning"></span>Action needed</span>
-    </div>
-  </header>
+<header class="portal-header">
+<div><div class="eyebrow">Admin Portal</div><h1>Project control.</h1><p>Paid orders, storage, revisions, client review, royalty gates, and final delivery in one place.</p></div>
+<div class="project-picker"><label for="projectSelect">Project</label><select id="projectSelect"><option>Loading…</option></select></div>
+</header>
 
-  <section class="status-grid" aria-label="Admin project summary">
-    <article class="status-card"><span class="status-label">Payment</span><div class="status-value"><span class="dot success"></span>Paid</div><p class="status-note">Payment is verified separately from project progress.</p></article>
-    <article class="status-card"><span class="status-label">Project</span><div class="status-value"><span class="dot warning"></span>In progress</div><p class="status-note">Work has started on this order.</p></article>
-    <article class="status-card"><span class="status-label">Files</span><div class="status-value"><span class="dot success"></span>Received</div><p class="status-note">Private project folder is available.</p></article>
-    <article class="status-card"><span class="status-label">Final delivery</span><div class="status-value"><span class="dot warning"></span>Locked</div><p class="status-note">Waiting on your royalty agreement signature.</p></article>
-  </section>
+<div id="errorBox" class="error-box hidden"></div>
+<div id="successBox" class="success-box hidden"></div>
+<section id="emptyState" class="portal-panel hidden"><h2>No active projects</h2><p>Paid client projects will appear here automatically.</p></section>
 
-  <section class="portal-grid">
-    <div class="portal-stack">
-      <article class="portal-panel next-action">
-        <div class="status-label">Your next action</div>
-        <h2>Review and sign the royalty agreement.</h2>
-        <p>Royalty participation is required. The client submitted their royalty information and completed their signature. Agreement status is pending MixedByRashid, so final delivery stays locked until you sign.</p>
-        <a class="btn" href="royalty-agreement.html">Review & Sign</a>
-      </article>
+<div id="dashboard" class="hidden">
+<section class="status-grid">
+<article class="status-card"><span class="status-label">Payment</span><div class="status-value" id="paymentValue"></div><p class="status-note" id="paymentNote"></p></article>
+<article class="status-card"><span class="status-label">Project</span><div class="status-value" id="projectValue"></div><p class="status-note" id="projectNote"></p></article>
+<article class="status-card"><span class="status-label">Storage</span><div class="status-value" id="storageValue"></div><p class="status-note" id="storageNote"></p></article>
+<article class="status-card"><span class="status-label">Final delivery</span><div class="status-value" id="deliveryValue"></div><p class="status-note" id="deliveryNote"></p></article>
+</section>
 
-      <article class="portal-panel">
-        <div class="section-kicker">Order controls</div>
-        <h2>Project state</h2>
-        <div class="detail-list">
-          <div class="detail-row"><span>Payment</span><strong>Paid</strong></div>
-          <div class="detail-row"><span>Project status</span><strong>In progress</strong></div>
-          <div class="detail-row"><span>Service</span><strong>Mixing + Mastering</strong></div>
-          <div class="detail-row"><span>Storage</span><strong>Private project folder</strong></div>
-          <div class="detail-row"><span>Revisions included</span><strong>2</strong></div>
-        </div>
-      </article>
+<section class="portal-grid">
+<div class="portal-stack">
+<article class="portal-panel next-action">
+<div class="status-label">Project state</div>
+<h2>Update the work queue.</h2>
+<div class="project-picker">
+<select id="statusSelect">
+<option value="pending">Pending</option>
+<option value="ready">Ready</option>
+<option value="in_progress">In progress</option>
+<option value="revision">Revision</option>
+<option value="complete">Complete</option>
+<option value="cancelled">Cancelled</option>
+</select>
+<button class="btn" id="saveStatus" type="button">Save status</button>
+</div>
+</article>
 
-      <article class="portal-panel">
-        <div class="section-kicker">Work queue</div>
-        <h2>What you can do from this project</h2>
-        <div class="action-list">
-          <div class="action-card"><div><strong>Open source files</strong><small>Stems, rough mix, references, and client notes</small></div><a class="btn secondary" href="mixing-intake.html">Open workspace</a></div>
-          <div class="action-card"><div><strong>Upload working versions</strong><small>Mix, master, A/B alternates, and revision versions</small></div><button class="btn secondary" type="button" disabled>Backend wiring next</button></div>
-          <div class="action-card"><div><strong>Review revision history</strong><small>Client notes and prior versions stay attached here</small></div><button class="btn secondary" type="button" disabled>No revisions yet</button></div>
-          <div class="action-card locked"><div><strong>Release final delivery</strong><small>Protected by the royalty agreement gate for this project</small></div><button class="btn secondary" type="button" disabled>Locked</button></div>
-        </div>
-      </article>
-    </div>
+<article class="portal-panel">
+<div class="section-kicker">Work files</div><h2>Upload project versions</h2>
+<p>Create secure upload requests for your working passes and final delivery folder.</p>
+<div class="action-list">
+<div class="action-card"><div><strong>Working versions & revisions</strong><small>Mix passes, master passes, and alternates</small></div><button class="btn secondary" id="uploadRevision" type="button">Open upload</button></div>
+<div class="action-card"><div><strong>Final delivery</strong><small>Final files remain client-locked until the project delivery gate allows them</small></div><button class="btn secondary" id="uploadFinal" type="button">Open final upload</button></div>
+<div class="action-card"><div><strong>Client A/B review</strong><small>Open the same timestamped review workspace</small></div><a class="btn secondary" id="reviewLink" href="/review">Open review</a></div>
+</div>
+</article>
 
-    <aside class="portal-stack">
-      <article class="portal-panel">
-        <div class="section-kicker">Royalty delivery gate</div>
-        <h3>Agreement checklist</h3>
-        <div class="detail-list">
-          <div class="detail-row"><span>Participation</span><strong>Required</strong></div>
-          <div class="detail-row"><span>Client royalty info</span><strong>Submitted</strong></div>
-          <div class="detail-row"><span>Client signature</span><strong>Complete</strong></div>
-          <div class="detail-row"><span>Your signature</span><strong>Pending</strong></div>
-          <div class="detail-row"><span>Agreement</span><strong>Pending MixedByRashid</strong></div>
-          <div class="detail-row"><span>Final delivery</span><strong>Locked</strong></div>
-        </div>
-      </article>
+<article class="portal-panel">
+<div class="section-kicker">Project files</div><h2>Current files</h2><div class="file-list" id="fileList"></div>
+</article>
+</div>
 
-      <article class="portal-panel">
-        <div class="section-kicker">Credits & release</div>
-        <h3>Metadata</h3>
-        <div class="detail-list">
-          <div class="detail-row"><span>Required credit</span><strong>Mixed by Rashid</strong></div>
-          <div class="detail-row"><span>Splits</span><strong>Client submitted</strong></div>
-          <div class="detail-row"><span>PRO / IPI / CAE</span><strong>On file when required</strong></div>
-          <div class="detail-row"><span>ISRC / UPC</span><strong>Pending release info</strong></div>
-        </div>
-      </article>
-
-      <article class="portal-panel">
-        <div class="section-kicker">Delivery rule</div>
-        <h3>No accidental release</h3>
-        <p>Flat-fee projects with no royalty requirement can deliver normally. Royalty-participating projects only unlock final files after the required agreement is fully executed.</p>
-      </article>
-    </aside>
-  </section>
-
-  <div class="portal-note"><strong>Preview state:</strong> this dashboard uses sample project values to demonstrate the approved admin workflow. Backend data and file actions remain isolated to the non-production build until wiring and tests are complete.</div>
+<aside class="portal-stack">
+<article class="portal-panel"><div class="section-kicker">Order</div><h3 id="serviceTitle"></h3><div class="detail-list" id="orderDetails"></div></article>
+<article class="portal-panel"><div class="section-kicker">Revisions</div><h3 id="revisionTitle"></h3><div class="mini-grid"><div class="mini-card"><span>Used</span><strong id="revisionUsed">0</strong></div><div class="mini-card"><span>Remaining</span><strong id="revisionRemaining">0</strong></div></div></article>
+<article class="portal-panel"><div class="section-kicker">Royalty gate</div><h3 id="royaltyTitle"></h3><p id="royaltyCopy"></p><a class="btn secondary" id="royaltyLink" href="/royalties">Open agreement</a></article>
+</aside>
+</section>
+</div>
 </main>
+<script>
+const select=document.getElementById('projectSelect');
+const dashboard=document.getElementById('dashboard');
+const emptyState=document.getElementById('emptyState');
+const errorBox=document.getElementById('errorBox');
+const successBox=document.getElementById('successBox');
+let projects=[];
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pretty=s=>String(s||'pending').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
+const money=cents=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format((Number(cents)||0)/100);
+function dot(kind){return '<span class="dot '+kind+'"></span>'}
+function showError(message){successBox.classList.add('hidden');errorBox.textContent=message;errorBox.classList.remove('hidden')}
+function showSuccess(message){errorBox.classList.add('hidden');successBox.textContent=message;successBox.classList.remove('hidden')}
+function clearMessages(){errorBox.classList.add('hidden');successBox.classList.add('hidden')}
+
+async function api(url,options){
+  const r=await fetch(url,{cache:'no-store',...options});
+  if(r.status===401){location.href='/login?next='+encodeURIComponent(location.pathname+location.search);throw new Error('Authentication required.')}
+  const d=await r.json().catch(()=>({}));
+  if(r.status===403)throw new Error('This account is not authorized for the admin portal.');
+  if(!r.ok)throw new Error(d.error||'Request failed.');
+  return d;
+}
+
+async function loadProjects(preferId){
+  clearMessages();
+  const data=await api('/api/projects?scope=admin');
+  projects=data.projects||[];
+  if(!projects.length){
+    dashboard.classList.add('hidden');emptyState.classList.remove('hidden');
+    select.innerHTML='<option>No projects</option>';return;
+  }
+  emptyState.classList.add('hidden');dashboard.classList.remove('hidden');
+  select.innerHTML=projects.map(p=>'<option value="'+esc(p.id)+'">'+esc((p.release?.song_title||p.customer_email||pretty(p.service))+' · '+pretty(p.project_status))+'</option>').join('');
+  const q=new URLSearchParams(location.search).get('order_id');
+  const id=preferId||q||projects[0].id;
+  if(projects.some(p=>p.id===id))select.value=id;
+  renderCurrent();
+}
+
+function current(){return projects.find(p=>p.id===select.value)||projects[0]}
+
+function renderCurrent(){
+  const p=current(); if(!p)return;
+  const paid=p.payment_status==='paid';
+  document.getElementById('paymentValue').innerHTML=dot(paid?'success':'warning')+pretty(p.payment_status);
+  document.getElementById('paymentNote').textContent=paid?'Payment verified.':'Payment needs attention.';
+  document.getElementById('projectValue').innerHTML=dot(p.project_status==='complete'?'success':'warning')+pretty(p.project_status);
+  document.getElementById('projectNote').textContent='Work queue status is separate from payment.';
+  document.getElementById('storageValue').innerHTML=dot(p.storage?'success':'warning')+(p.storage?'Ready':'Not set up');
+  document.getElementById('storageNote').textContent=p.storage?'Private project folder is attached.':'Client storage has not been provisioned yet.';
+  document.getElementById('deliveryValue').innerHTML=dot(p.delivery?.allowed?'success':'warning')+(p.delivery?.allowed?'Unlocked':'Locked');
+  document.getElementById('deliveryNote').textContent=p.delivery?.reason||'Delivery follows the project gate.';
+
+  document.getElementById('statusSelect').value=p.project_status;
+  document.getElementById('serviceTitle').textContent=pretty(p.service);
+  document.getElementById('orderDetails').innerHTML=
+    '<div class="detail-row"><span>Client</span><strong>'+esc(p.customer_email||'Unknown')+'</strong></div>'+
+    '<div class="detail-row"><span>Order</span><strong>'+esc(p.id.slice(0,8).toUpperCase())+'</strong></div>'+
+    '<div class="detail-row"><span>Paid</span><strong>'+esc(money(p.amount_total_cents))+'</strong></div>'+
+    '<div class="detail-row"><span>Song</span><strong>'+esc(p.release?.song_title||'Not added yet')+'</strong></div>';
+
+  const included=Number(p.included_revisions||0),used=Number(p.revision_count||0);
+  document.getElementById('revisionTitle').textContent=included+' included revision'+(included===1?'':'s');
+  document.getElementById('revisionUsed').textContent=used;
+  document.getElementById('revisionRemaining').textContent=Math.max(0,included-used);
+
+  const royalty=p.royalty||{};
+  document.getElementById('royaltyTitle').textContent=royalty.required?'Participation required':'Not required';
+  document.getElementById('royaltyCopy').textContent=royalty.required
+    ? 'Agreement status: '+pretty(royalty.status)+'. Final delivery remains protected until the required signatures are complete.'
+    : 'No royalty agreement is required for this flat-fee project.';
+  document.getElementById('royaltyLink').href='/royalties?order_id='+encodeURIComponent(p.id);
+  document.getElementById('reviewLink').href='/review?order_id='+encodeURIComponent(p.id);
+
+  const disabled=!p.storage;
+  document.getElementById('uploadRevision').disabled=disabled;
+  document.getElementById('uploadFinal').disabled=disabled;
+  loadFiles(p).catch(e=>showError(e.message));
+}
+
+async function saveStatus(){
+  const p=current();
+  try{
+    clearMessages();
+    await api('/api/projects',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({orderId:p.id,projectStatus:document.getElementById('statusSelect').value})});
+    showSuccess('Project status updated.');
+    await loadProjects(p.id);
+  }catch(e){showError(e.message)}
+}
+
+async function openUpload(role){
+  const p=current();
+  if(!p.storage)return showError('Project storage is not ready yet.');
+  try{
+    clearMessages();
+    const data=await api('/api/admin-upload-request',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({orderId:p.id,role})});
+    if(data.url)window.open(data.url,'_blank','noopener');
+  }catch(e){showError(e.message)}
+}
+
+async function loadFiles(p){
+  const area=document.getElementById('fileList');
+  if(!p.storage){area.innerHTML='<div class="file-row"><div><strong>No storage yet</strong><small>The client must set up private uploads first.</small></div></div>';return}
+  const data=await api('/api/project-files?order_id='+encodeURIComponent(p.id));
+  const groups=data.files||{};
+  const pairs=[['Source',groups.source||[]],['Reference',groups.reference||[]],['Rough mix',groups.rough_mix||[]],['Revision',groups.revision||[]],['Final',groups.final||[]]];
+  const files=pairs.flatMap(([label,items])=>items.map(f=>({...f,label})));
+  if(!files.length){area.innerHTML='<div class="file-row"><div><strong>No files yet</strong><small>Uploads will appear here automatically.</small></div></div>';return}
+  area.innerHTML=files.map(f=>'<div class="file-row"><div><strong>'+esc(f.name)+'</strong><small>'+esc(f.label)+' · '+Math.max(1,Math.round((f.size_bytes||0)/1048576))+' MB</small></div><button class="btn secondary" data-file="'+esc(f.id)+'">Download</button></div>').join('');
+  area.querySelectorAll('[data-file]').forEach(btn=>btn.onclick=()=>downloadFile(p.id,btn.dataset.file));
+}
+
+async function downloadFile(orderId,fileId){
+  try{
+    const data=await api('/api/project-download?order_id='+encodeURIComponent(orderId)+'&file_id='+encodeURIComponent(fileId));
+    location.href=data.url;
+  }catch(e){showError(e.message)}
+}
+
+document.getElementById('saveStatus').onclick=saveStatus;
+document.getElementById('uploadRevision').onclick=()=>openUpload('revision');
+document.getElementById('uploadFinal').onclick=()=>openUpload('final');
+select.addEventListener('change',()=>{history.replaceState({},'',location.pathname+'?order_id='+encodeURIComponent(select.value));renderCurrent()});
+loadProjects().catch(e=>showError(e.message));
+</script>
 </body>
 </html>

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connect Dropbox | MixedByRashid</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+.connect-card{max-width:720px;margin:8vh auto;padding:24px;border:1px solid var(--line);border-radius:20px;background:#111116}
+.connect-card h1{margin-top:0}.connect-card p{color:var(--muted);line-height:1.55}
+.secret-box{display:none;margin-top:18px}.secret-box.show{display:block}
+.secret-box textarea{width:100%;min-height:120px;box-sizing:border-box;background:#09090b;color:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;font:inherit}
+.status{margin-top:14px;color:var(--muted)}.warning{color:#ffd48a}
+</style>
+</head>
+<body>
+<nav><div class="shell nav-inner"><a class="brand" href="index.html">Mixed<span>By</span>Rashid</a><a class="btn secondary" href="index.html">Back Home</a></div></nav>
+<main class="shell">
+  <section class="connect-card">
+    <div class="eyebrow">Owner Setup</div>
+    <h1>Connect Dropbox</h1>
+    <p>This page connects the MixedByRashid portal to the Dropbox app using OAuth PKCE. The refresh token is shown only in this browser so it can be saved directly into Netlify.</p>
+    <button class="btn primary" id="connect" type="button">Authorize Dropbox</button>
+    <div class="status" id="status"></div>
+    <div class="secret-box" id="secretBox">
+      <h3>Dropbox refresh token</h3>
+      <p class="warning">Treat this like a password. Save it in Netlify as <strong>DROPBOX_REFRESH_TOKEN</strong>. Do not send it in chat or screenshots.</p>
+      <textarea id="token" readonly></textarea>
+      <button class="btn secondary" id="copy" type="button">Copy token</button>
+    </div>
+  </section>
+</main>
+<script>
+const APP_KEY='tu7seery1let8fv';
+const REDIRECT_URI='https://mixedbyrashid.netlify.app/dropbox-connect.html';
+const connect=document.getElementById('connect');
+const status=document.getElementById('status');
+const box=document.getElementById('secretBox');
+const token=document.getElementById('token');
+
+function base64url(bytes){
+  let binary='';
+  bytes.forEach(b=>binary+=String.fromCharCode(b));
+  return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+async function sha256(value){
+  return new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)));
+}
+
+function randomVerifier(){
+  const bytes=new Uint8Array(64);
+  crypto.getRandomValues(bytes);
+  return base64url(bytes);
+}
+
+connect.addEventListener('click',async()=>{
+  const verifier=randomVerifier();
+  const challenge=base64url(await sha256(verifier));
+  const state=randomVerifier().slice(0,48);
+  sessionStorage.setItem('dropbox_pkce_verifier',verifier);
+  sessionStorage.setItem('dropbox_oauth_state',state);
+
+  const url=new URL('https://www.dropbox.com/oauth2/authorize');
+  url.searchParams.set('client_id',APP_KEY);
+  url.searchParams.set('response_type','code');
+  url.searchParams.set('token_access_type','offline');
+  url.searchParams.set('code_challenge_method','S256');
+  url.searchParams.set('code_challenge',challenge);
+  url.searchParams.set('redirect_uri',REDIRECT_URI);
+  url.searchParams.set('state',state);
+  location.href=url.toString();
+});
+
+document.getElementById('copy').addEventListener('click',async function(){
+  await navigator.clipboard.writeText(token.value);
+  this.textContent='Copied';
+});
+
+async function finish(){
+  const q=new URLSearchParams(location.search);
+  const code=q.get('code');
+  if(!code)return;
+  connect.disabled=true;
+  status.textContent='Finishing Dropbox authorization…';
+
+  const expected=sessionStorage.getItem('dropbox_oauth_state');
+  const verifier=sessionStorage.getItem('dropbox_pkce_verifier');
+  const returned=q.get('state');
+  if(!expected||!returned||expected!==returned||!verifier){
+    status.textContent='Authorization state could not be verified. Start again.';
+    connect.disabled=false;
+    return;
+  }
+
+  const response=await fetch('/api/dropbox-oauth-exchange',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({code,codeVerifier:verifier})
+  });
+  const data=await response.json();
+  if(!response.ok||!data.refresh_token){
+    status.textContent=data.error||'Dropbox did not return a refresh token.';
+    connect.disabled=false;
+    return;
+  }
+
+  token.value=data.refresh_token;
+  box.classList.add('show');
+  status.textContent='Dropbox authorized. Save the token in Netlify, then close this page.';
+  sessionStorage.removeItem('dropbox_pkce_verifier');
+  sessionStorage.removeItem('dropbox_oauth_state');
+  history.replaceState({},document.title,REDIRECT_URI);
+}
+finish().catch(()=>{status.textContent='Dropbox authorization could not be completed. Start again.';connect.disabled=false;});
+</script>
+</body>
+</html>

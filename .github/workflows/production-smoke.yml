@@ -1,0 +1,44 @@
+name: Production Smoke
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Netlify and verify production
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://mixedbyrashid.netlify.app"
+
+          ready=0
+          for attempt in $(seq 1 18); do
+            code=$(curl -sS -o /tmp/portal-health.json -w "%{http_code}" "$BASE/api/portal-health" || true)
+            if [ "$code" = "200" ]; then
+              ready=1
+              break
+            fi
+            echo "Portal health attempt $attempt returned HTTP $code"
+            cat /tmp/portal-health.json 2>/dev/null || true
+            sleep 10
+          done
+
+          if [ "$ready" != "1" ]; then
+            echo "Portal database did not become healthy."
+            cat /tmp/portal-health.json 2>/dev/null || true
+            exit 1
+          fi
+
+          grep -q '"ok":true' /tmp/portal-health.json
+          curl -fsS "$BASE/login" | grep -q "Open your project"
+          curl -fsS "$BASE/verify-email" | grep -q "Check your email"
+          curl -fsS "$BASE/book" | grep -q "Dallas, Texas • Studio Booking"
+
+          project_code=$(curl -sS -o /tmp/projects-unauth.json -w "%{http_code}" "$BASE/api/projects" || true)
+          test "$project_code" = "401"

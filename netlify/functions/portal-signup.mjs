@@ -20,7 +20,7 @@ export default async (request) => {
     if (!email || !password) return redirect('/signup?error=missing');
 
     await signup(email, password, fullName ? { full_name: fullName } : {});
-    return redirect('/login?created=1');
+    return redirect('/verify-email?sent=1');
   } catch (error) {
     console.error('portal-signup', error?.message || error);
     return redirect('/signup?error=signup');

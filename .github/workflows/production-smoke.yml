@@ -70,3 +70,25 @@ jobs:
 
           project_code=$(curl -sS -o /tmp/projects-unauth.json -w "%{http_code}" "$BASE/api/projects" || true)
           test "$project_code" = "401"
+
+          curl -fsS -o /tmp/home.html "$BASE/"
+          grep -q "Request Mixing" /tmp/home.html
+          grep -q "Request Mastering" /tmp/home.html
+          ! grep -q "4gM6oI5u91dS1aH0Cy4wM01" /tmp/home.html
+          ! grep -q "00waEY6ydcWA2eLclg4wM02" /tmp/home.html
+
+          grep -q "Schedule Extended Session" /tmp/book.html
+
+          curl -fsS -o /tmp/admin.html "$BASE/admin"
+          grep -q "Project control." /tmp/admin.html
+
+          checkout_code=$(curl -sS \
+            -H "Origin: $BASE" \
+            -H "Referer: $BASE/" \
+            -H "Content-Type: application/json" \
+            -o /tmp/checkout-disabled.json \
+            -w "%{http_code}" \
+            -X POST \
+            --data '{"service":"studio","hours":2}' \
+            "$BASE/api/create-checkout" || true)
+          test "$checkout_code" = "503"

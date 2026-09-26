@@ -10,16 +10,11 @@ import {
   createDropboxFileRequest,
 } from '../lib/dropbox.mjs';
 
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: { 'content-type': 'application/json; charset=utf-8' },
-  body: JSON.stringify(body),
-});
+const json = (status, body) => Response.json(body, { status });
 
-function parseBody(event) {
-  if (!event.body) return {};
+async function parseBody(request) {
   try {
-    return JSON.parse(event.body);
+    return await request.json();
   } catch {
     const error = new Error('Request body must be valid JSON.');
     error.statusCode = 400;
@@ -41,35 +36,38 @@ async function getOrCreateClient(sql, { user, order, displayName }) {
   const existing = await sql`
     select *
     from portal_clients
-    where (user_id = ${user.sub})
+    where (user_id = ${user.id})
        or lower(customer_email) = lower(${order.customer_email})
     order by created_at asc
     limit 1
   `;
+
   if (existing[0]) {
     if (!existing[0].storage_folder_path) {
       const folder = clientFolderPath({
         displayName: displayName || existing[0].display_name,
-        userId: user.sub,
+        userId: user.id,
         email: order.customer_email,
       });
+
       const updated = await sql`
         update portal_clients
         set storage_folder_path = ${folder},
             display_name = coalesce(${displayName || null}, display_name),
-            user_id = coalesce(user_id, ${user.sub}),
+            user_id = coalesce(user_id, ${user.id}),
             updated_at = now()
         where id = ${existing[0].id}
         returning *
       `;
       return updated[0];
     }
+
     return existing[0];
   }
 
   const folder = clientFolderPath({
     displayName,
-    userId: user.sub,
+    userId: user.id,
     email: order.customer_email,
   });
 
@@ -77,7 +75,7 @@ async function getOrCreateClient(sql, { user, order, displayName }) {
     insert into portal_clients
       (user_id, customer_email, display_name, storage_folder_path)
     values
-      (${user.sub}, ${order.customer_email}, ${displayName || null}, ${folder})
+      (${user.id}, ${order.customer_email}, ${displayName || null}, ${folder})
     returning *
   `;
   return inserted[0];
@@ -92,6 +90,7 @@ async function provisionFolders(clientFolder, projectFolder) {
   for (const path of Object.values(subfolders)) {
     await ensureDropboxFolder(path);
   }
+
   return subfolders;
 }
 
@@ -106,18 +105,19 @@ async function storageForOrder(sql, orderId) {
   return rows[0];
 }
 
-export async function handler(event, context) {
+export default async (request) => {
   try {
-    if (!['GET', 'POST'].includes(event.httpMethod)) {
+    if (!['GET', 'POST'].includes(request.method)) {
       return json(405, { error: 'Method not allowed.' });
     }
 
-    const user = portalUser(context);
-    const body = event.httpMethod === 'POST' ? parseBody(event) : {};
+    const user = await portalUser();
+    const url = new URL(request.url);
+    const body = request.method === 'POST' ? await parseBody(request) : {};
     const orderId =
       body.orderId ||
-      event.queryStringParameters?.order_id ||
-      event.queryStringParameters?.orderId;
+      url.searchParams.get('order_id') ||
+      url.searchParams.get('orderId');
 
     if (!orderId) return json(400, { error: 'orderId is required.' });
 
@@ -127,17 +127,21 @@ export async function handler(event, context) {
 
     assertOrderAccess(order, user);
 
-    if (event.httpMethod === 'GET') {
+    if (request.method === 'GET') {
       const storage = await storageForOrder(sql, orderId);
       return json(200, { storage: storage || null });
     }
 
     if (!['mixing', 'mastering'].includes(order.service)) {
-      return json(409, { error: 'Private audio storage is only provisioned for mixing or mastering orders.' });
+      return json(409, {
+        error: 'Private audio storage is only provisioned for mixing or mastering orders.',
+      });
     }
 
     if (order.payment_status !== 'paid') {
-      return json(409, { error: 'Payment must be verified before project storage is created.' });
+      return json(409, {
+        error: 'Payment must be verified before project storage is created.',
+      });
     }
 
     const displayName = String(body.displayName || '').trim() || null;
@@ -151,6 +155,7 @@ export async function handler(event, context) {
     });
 
     let storage = await storageForOrder(sql, order.id);
+
     if (!storage) {
       const inserted = await sql`
         insert into portal_project_storage
@@ -168,16 +173,17 @@ export async function handler(event, context) {
     );
 
     if (!storage.source_request_url) {
-      const request = await createDropboxFileRequest({
+      const uploadRequest = await createDropboxFileRequest({
         title: `${projectName} - Stems & Source Files`,
         destination: subfolders.source,
-        description: 'Upload consolidated stems, source audio, rough mixes, and related project files here.',
+        description:
+          'Upload consolidated stems, source audio, rough mixes, and related project files here.',
       });
 
       const updated = await sql`
         update portal_project_storage
-        set source_request_id = ${request.id},
-            source_request_url = ${request.url},
+        set source_request_id = ${uploadRequest.id},
+            source_request_url = ${uploadRequest.url},
             updated_at = now()
         where order_id = ${order.id}
         returning *
@@ -186,7 +192,7 @@ export async function handler(event, context) {
     }
 
     if (!storage.reference_request_url) {
-      const request = await createDropboxFileRequest({
+      const referenceRequest = await createDropboxFileRequest({
         title: `${projectName} - Reference Tracks`,
         destination: subfolders.references,
         description: 'Upload reference tracks for this project here.',
@@ -194,8 +200,8 @@ export async function handler(event, context) {
 
       const updated = await sql`
         update portal_project_storage
-        set reference_request_id = ${request.id},
-            reference_request_url = ${request.url},
+        set reference_request_id = ${referenceRequest.id},
+            reference_request_url = ${referenceRequest.url},
             updated_at = now()
         where order_id = ${order.id}
         returning *
@@ -217,7 +223,13 @@ export async function handler(event, context) {
   } catch (error) {
     console.error('project-storage', error);
     return json(error.statusCode || 500, {
-      error: error.statusCode ? error.message : 'Unable to provision project storage.',
+      error: error.statusCode
+        ? error.message
+        : 'Unable to provision project storage.',
     });
   }
-}
+};
+
+export const config = {
+  path: '/api/project-storage',
+};

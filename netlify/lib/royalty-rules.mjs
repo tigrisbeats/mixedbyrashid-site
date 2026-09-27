@@ -85,3 +85,9 @@ export function finalDeliveryGate({
 export function canActivateRoyaltyTemplate({ attorneyReviewStatus } = {}) {
   return attorneyReviewStatus === 'approved';
 }
+
+export function projectDeliveryGate({ paymentStatus, projectStatus, ...royalty } = {}) {
+  if (paymentStatus !== 'paid') return { allowed: false, reason: 'Final delivery requires verified payment.' };
+  if (projectStatus === 'cancelled') return { allowed: false, reason: 'Final delivery is unavailable for a cancelled project.' };
+  return finalDeliveryGate(royalty);
+}

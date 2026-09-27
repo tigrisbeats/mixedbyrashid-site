@@ -1,5 +1,5 @@
 import { getDb } from '../lib/db.mjs';
-import { portalUser, assertOrderAccess } from '../lib/auth.mjs';
+import { portalUser, assertOrderAccess, verifyPortalMutation } from '../lib/auth.mjs';
 import {
   clientFolderPath,
   projectFolderPath,
@@ -111,6 +111,7 @@ export default async (request) => {
       return json(405, { error: 'Method not allowed.' });
     }
 
+    if (request.method === 'POST') verifyPortalMutation(request);
     const user = await portalUser();
     const url = new URL(request.url);
     const body = request.method === 'POST' ? await parseBody(request) : {};

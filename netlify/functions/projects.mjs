@@ -3,8 +3,9 @@ import {
   portalUser,
   assertOrderAccess,
   isPortalAdmin,
+  verifyPortalMutation,
 } from '../lib/auth.mjs';
-import { finalDeliveryGate } from '../lib/royalty-rules.mjs';
+import { projectDeliveryGate as finalDeliveryGate } from '../lib/royalty-rules.mjs';
 
 const json = (status, body) => Response.json(body, { status });
 
@@ -20,6 +21,8 @@ async function parseBody(request) {
 
 function shapeProject(row) {
   const gate = finalDeliveryGate({
+    paymentStatus: row.payment_status,
+    projectStatus: row.project_status,
     royaltyParticipationRequired: row.royalty_participation_required,
     royaltyAgreementStatus: row.royalty_agreement_status,
     clientSignedAt: row.client_signed_at,
@@ -223,6 +226,7 @@ export default async (request) => {
       return json(405, { error: 'Method not allowed.' });
     }
 
+    if (request.method === 'PATCH') verifyPortalMutation(request);
     const user = await portalUser();
     const sql = getDb();
 

@@ -9,6 +9,9 @@
     "@netlify/functions": "^4.2.5",
     "@netlify/identity": "^2.0.0",
     "postgres": "^3.4.7",
-    "stripe": "^18.5.0"
+    "stripe": "^22.6.2"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.16"
   }
 }

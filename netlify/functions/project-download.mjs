@@ -5,9 +5,9 @@ import {
   listDropboxFolder,
   getDropboxTemporaryLink,
 } from '../lib/dropbox.mjs';
-import { finalDeliveryGate } from '../lib/royalty-rules.mjs';
+import { projectDeliveryGate as finalDeliveryGate } from '../lib/royalty-rules.mjs';
 
-const json = (status, body) => Response.json(body, { status });
+const json = (status, body) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 
 async function projectRow(sql, orderId) {
   const rows = await sql`
@@ -15,6 +15,8 @@ async function projectRow(sql, orderId) {
       o.id,
       o.user_id,
       o.customer_email,
+      o.payment_status,
+      o.project_status,
       o.royalty_participation_required,
       o.royalty_agreement_status,
       a.client_signed_at,
@@ -33,6 +35,8 @@ async function projectRow(sql, orderId) {
 async function findAllowedFile({ project, user, fileId }) {
   const folders = projectSubfolders(project.project_folder_path);
   const gate = finalDeliveryGate({
+    paymentStatus: project.payment_status,
+    projectStatus: project.project_status,
     royaltyParticipationRequired: project.royalty_participation_required,
     royaltyAgreementStatus: project.royalty_agreement_status,
     clientSignedAt: project.client_signed_at,

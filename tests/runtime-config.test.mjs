@@ -64,6 +64,11 @@ test('non-payment contexts stay disabled even when keys are present', () => {
   assert.equal(runtime.mode, 'disabled');
 });
 
+test('checkout rejects keys belonging to the opposite mode', () => {
+  assert.equal(resolvePaymentRuntime({ CONTEXT: 'deploy-preview', STRIPE_SANDBOX_ENABLED: 'true', STRIPE_TEST_SECRET_KEY: 'sk_live_example' }).checkoutConfigured, false);
+  assert.equal(resolvePaymentRuntime({ CONTEXT: 'production', PAYMENTS_ENABLED: 'true', STRIPE_LIVE_SECRET_KEY: 'sk_test_example' }).checkoutConfigured, false);
+});
+
 test('production Dropbox storage requires explicit enable flag and all credentials', () => {
   const disabled = resolveStorageRuntime({
     CONTEXT: 'production',

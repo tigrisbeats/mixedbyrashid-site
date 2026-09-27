@@ -1,6 +1,6 @@
 import { getDb } from './db.mjs';
 
-export async function markCheckoutPaid(session) {
+async function markCheckoutPaid(session, sql) {
   const email =
     session.customer_details?.email ||
     session.customer_email ||
@@ -13,6 +13,10 @@ export async function markCheckoutPaid(session) {
   const service = session.metadata?.service;
   if (!['studio', 'mixing', 'mastering'].includes(service)) {
     throw new Error(`Unsupported checkout service: ${service || 'missing'}.`);
+  }
+  if (!session.id?.startsWith('cs_') || session.mode !== 'payment' || session.currency !== 'usd' ||
+      !Number.isSafeInteger(session.amount_total) || session.amount_total <= 0) {
+    throw new Error('Checkout receipt has invalid payment fields.');
   }
 
   const sessionHours = session.metadata?.session_hours
@@ -31,7 +35,9 @@ export async function markCheckoutPaid(session) {
         ? 1
         : 0;
 
-  const sql = getDb();
+  for (const value of [sessionHours, sessionTotalCents, includedRevisions]) {
+    if (value !== null && (!Number.isSafeInteger(value) || value < 0)) throw new Error('Invalid checkout metadata.');
+  }
 
   await sql`
     insert into portal_orders (
@@ -78,15 +84,28 @@ export async function markCheckoutPaid(session) {
         included_revisions = excluded.included_revisions,
         paid_at = coalesce(portal_orders.paid_at, now()),
         updated_at = now()
+    where portal_orders.payment_status = 'pending'
+      and portal_orders.service = excluded.service
+      and lower(portal_orders.customer_email) = lower(excluded.customer_email)
   `;
 }
 
-export async function handleStripeCheckoutEvent(stripeEvent) {
+export async function handleStripeCheckoutEvent(stripeEvent, expectedMode, sql) {
+  if (!['live', 'test'].includes(expectedMode) || stripeEvent.livemode !== (expectedMode === 'live')) {
+    throw new Error('Unexpected Stripe event mode.');
+  }
   if (
     stripeEvent.type === 'checkout.session.completed' ||
     stripeEvent.type === 'checkout.session.async_payment_succeeded'
   ) {
-    await markCheckoutPaid(stripeEvent.data.object);
+    const session = stripeEvent.data?.object;
+    if (session?.object !== 'checkout.session' || session.livemode !== stripeEvent.livemode) {
+      throw new Error('Unexpected Stripe session mode or object.');
+    }
+    if (session.payment_status !== 'paid') {
+      return { processed: false, type: stripeEvent.type, reason: 'payment_not_paid' };
+    }
+    await markCheckoutPaid(session, sql || getDb());
     return { processed: true, type: stripeEvent.type };
   }
 

@@ -1,5 +1,5 @@
 import { getDb } from '../lib/db.mjs';
-import { portalUser, isPortalAdmin } from '../lib/auth.mjs';
+import { portalUser, isPortalAdmin, verifyPortalMutation } from '../lib/auth.mjs';
 import { projectSubfolders } from '../lib/storage-rules.mjs';
 import { createDropboxFileRequest } from '../lib/dropbox.mjs';
 
@@ -40,6 +40,7 @@ export default async (request) => {
       return json(405, { error: 'Method not allowed.' });
     }
 
+    if (request.method === 'POST') verifyPortalMutation(request);
     const user = await portalUser();
     if (!isPortalAdmin(user)) return json(403, { error: 'Admin access required.' });
 

@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { randomInt } from 'node:crypto';
 import { verifyRequestOrigin } from '@netlify/identity';
 import {
   studioDepositCents,
@@ -132,6 +133,7 @@ export default async (request) => {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
+      integration_identifier: `mixedbyrashid_${Array.from({ length: 8 }, () => String.fromCharCode(97 + randomInt(26))).join('')}`,
       customer_email: email,
       line_items: [
         {
@@ -157,6 +159,10 @@ export default async (request) => {
           ? `${baseUrl}/book?checkout=cancelled`
           : `${baseUrl}/?checkout=cancelled`,
     });
+
+    if (session.livemode !== (runtime.mode === 'live')) {
+      throw new Error('Stripe returned a session in an unexpected mode.');
+    }
 
     return json(200, {
       checkout_url: session.url,

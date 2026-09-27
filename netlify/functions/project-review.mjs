@@ -1,5 +1,6 @@
 import { getDb } from '../lib/db.mjs';
-import { portalUser, assertOrderAccess, isPortalAdmin } from '../lib/auth.mjs';
+import { requestProjectRevision } from '../lib/review-state.mjs';
+import { portalUser, assertOrderAccess, isPortalAdmin, verifyPortalMutation } from '../lib/auth.mjs';
 import {
   normalizeTimestampMs,
   normalizeReviewNote,
@@ -91,6 +92,8 @@ function shapeReview(order, notes) {
       includedRevisions: order.included_revisions,
       revisionCount: order.revision_count,
     }),
+    can_request_revision: order.payment_status === 'paid' && order.project_status === 'in_progress' &&
+      !order.mix_approved_at && order.revision_count < order.included_revisions,
     notes,
   };
 }
@@ -101,6 +104,7 @@ export default async (request) => {
       return json(405, { error: 'Method not allowed.' });
     }
 
+    if (request.method === 'POST') verifyPortalMutation(request);
     const user = await portalUser();
     const admin = isPortalAdmin(user);
     const url = new URL(request.url);
@@ -142,15 +146,7 @@ export default async (request) => {
           revisionCount: order.revision_count,
         });
 
-        const updated = await sql`
-          update portal_orders
-          set revision_count = revision_count + 1,
-              project_status = 'revision',
-              updated_at = now()
-          where id = ${orderId}
-          returning id
-        `;
-        if (!updated[0]) return json(404, { error: 'Project not found.' });
+        await requestProjectRevision(sql, orderId);
       } else if (action === 'approve_final') {
         if (admin) return json(403, { error: 'Final mix approval is a client action.' });
         const versionKey = normalizeVersionKey(body.versionKey);

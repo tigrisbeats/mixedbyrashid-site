@@ -10,8 +10,8 @@ export function resolvePaymentRuntime(values = {}) {
     const webhookEnabled = bool(values.STRIPE_SANDBOX_ENABLED);
     const secretKey = String(values.STRIPE_TEST_SECRET_KEY || '').trim();
     const signingSecret = String(values.STRIPE_PREVIEW_SIGNING_SECRET || '').trim();
-    const checkoutConfigured = Boolean(secretKey);
-    const webhookConfigured = Boolean(secretKey && signingSecret);
+    const checkoutConfigured = /^(sk|rk)_test_/.test(secretKey);
+    const webhookConfigured = signingSecret.startsWith('whsec_');
 
     return {
       context,
@@ -32,8 +32,8 @@ export function resolvePaymentRuntime(values = {}) {
     const webhookEnabled = bool(values.STRIPE_LIVE_WEBHOOK_ENABLED);
     const secretKey = String(values.STRIPE_LIVE_SECRET_KEY || '').trim();
     const signingSecret = String(values.STRIPE_LIVE_SIGNING_SECRET || '').trim();
-    const checkoutConfigured = Boolean(secretKey);
-    const webhookConfigured = Boolean(signingSecret);
+    const checkoutConfigured = /^(sk|rk)_live_/.test(secretKey);
+    const webhookConfigured = signingSecret.startsWith('whsec_');
 
     return {
       context,
@@ -64,7 +64,7 @@ export function resolvePaymentRuntime(values = {}) {
 }
 
 function runtimeContext() {
-  return Netlify.env.get('PORTAL_CONTEXT') || Netlify.env.get('CONTEXT');
+  return Netlify.env.get('CONTEXT') || Netlify.env.get('PORTAL_CONTEXT');
 }
 
 export function paymentRuntimeConfig() {

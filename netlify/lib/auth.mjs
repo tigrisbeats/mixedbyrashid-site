@@ -1,4 +1,13 @@
-import { getUser } from '@netlify/identity';
+import { getUser, verifyRequestOrigin } from '@netlify/identity';
+
+export function verifyPortalMutation(request) {
+  try { verifyRequestOrigin(request); }
+  catch {
+    const error = new Error('Request origin is not allowed.');
+    error.statusCode = 403;
+    throw error;
+  }
+}
 
 export async function portalUser() {
   const user = await getUser();

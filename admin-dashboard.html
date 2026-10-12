@@ -24,6 +24,13 @@
 <div id="errorBox" class="error-box hidden"></div>
 <div id="successBox" class="success-box hidden"></div>
 
+<section class="mini-card" aria-label="Storage connection">
+<h2>Storage connection</h2>
+<p>Check that private file uploads and downloads work. This creates a tiny test file in a separate folder and removes it afterward.</p>
+<button class="btn secondary" id="checkStorage" type="button">Check storage connection</button>
+<p id="storageCheckResult" role="status" aria-live="polite"></p>
+</section>
+
 <section class="status-grid owner-overview" aria-label="Business overview">
 <article class="status-card"><span class="status-label">Online paid</span><div class="status-value" id="overviewPaid">$0</div><p class="status-note">Payments recorded in the portal</p></article>
 <article class="status-card"><span class="status-label">Active work</span><div class="status-value" id="overviewActive">0</div><p class="status-note">Ready, in progress, or revision</p></article>
@@ -247,6 +254,18 @@ document.getElementById('saveStatus').onclick=saveStatus;
 document.getElementById('uploadRevision').onclick=()=>openUpload('revision');
 document.getElementById('uploadFinal').onclick=()=>openUpload('final');
 select.addEventListener('change',()=>{history.replaceState({},'',location.pathname+'?order_id='+encodeURIComponent(select.value));renderCurrent()});
+document.getElementById('checkStorage').addEventListener('click',async()=>{
+  const button=document.getElementById('checkStorage');
+  const result=document.getElementById('storageCheckResult');
+  button.disabled=true;
+  result.textContent='Checking private storage…';
+  try {
+    const response=await api('/api/admin-storage-check',{method:'POST'});
+    const labels={configuration:'Credentials',connection:'Connection',folder:'Folder creation',upload:'Upload',listing:'File listing',download:'Download',upload_request:'Upload requests',cleanup:'Test cleanup'};
+    result.textContent=Object.entries(response.checks).map(([key,passed])=>labels[key]+': '+(passed?'passed':'failed')).join(' · ')+'. '+(response.storage_enabled?'Client storage is enabled.':'Client storage is currently disabled.');
+  } catch(error) { result.textContent=error.message; }
+  finally { button.disabled=false; }
+});
 loadProjects().catch(e=>showError(e.message));
 </script>
 </body>

@@ -22,6 +22,7 @@
 .schedule-gate{display:none}
 .schedule-gate.show{display:block}
 .schedule-actions{display:flex;gap:10px;flex-wrap:wrap}
+#recheck-deposit[hidden]{display:none}
 @media(max-width:840px){.booking-builder{grid-template-columns:1fr}}
 </style>
 </head>
@@ -67,7 +68,8 @@
       <div class="deposit-note">The deposit is non-refundable and applies toward your session total. The remaining balance is due at the session. Bookings require at least 12 hours notice and a 30-minute buffer between sessions.</div>
 
       <button class="btn primary" id="checkout" type="button">Continue to Deposit Checkout</button>
-      <div class="checkout-status" id="checkout-status"></div>
+      <div class="checkout-status" id="checkout-status" role="status" aria-live="polite"></div>
+      <button class="btn secondary" id="recheck-deposit" type="button" hidden>Check deposit again</button>
     </div>
   </div>
 
@@ -91,7 +93,7 @@
 <div class="schedule-actions">
 <a id="schedule-link" class="btn primary" href="https://calendly.com/tigrisbeats/mixedbyrashid-studio-time" target="_blank" rel="noopener">Open Scheduling</a>
 </div>
-<p class="smallprint">A calendar selection is matched to the paid deposit before the session is treated as secured.</p>
+<p class="smallprint">Choose a time that matches the session length on your paid deposit.</p>
 </div>
 </section>
 
@@ -159,44 +161,13 @@
 
   hours.addEventListener('change', render);
 
-  const liveStudioCheckout = {
-    2: 'https://book.stripe.com/5kQ28sbSx5u85qX1GC4wM03',
-    3: 'https://book.stripe.com/00w6oIaOtf4I6v1dpk4wM04',
-    4: 'https://book.stripe.com/bJeaEY7Chg8MaLhfxs4wM05',
-    5: 'https://book.stripe.com/3cI14oe0Ff4IdXt0Cy4wM06',
-    6: 'https://book.stripe.com/dRm6oI4q5aOs5qX3OK4wM07',
-    7: 'https://book.stripe.com/00wbJ2bSx1dS7z5clg4wM08',
-    8: 'https://book.stripe.com/aFa14o9Kpe0E8D90Cy4wM09',
-    9: 'https://book.stripe.com/14A7sMg8N5u8f1xclg4wM0a',
-    10: 'https://book.stripe.com/4gMeVecWB8GkcTpeto4wM0b',
-    11: 'https://book.stripe.com/5kQcN6e0F2hW8D9clg4wM0c',
-    12: 'https://book.stripe.com/4gM28s6yde0E06D0Cy4wM0d'
-  };
-
-  function liveCheckoutUrl(h){
-    const base = liveStudioCheckout[h];
-    if(!base) return null;
-    const customerEmail = email.value.trim();
-    return customerEmail
-      ? base + '?prefilled_email=' + encodeURIComponent(customerEmail)
-      : base;
-  }
-
   checkout.addEventListener('click', async () => {
+    if (!email.reportValidity()) return;
     status.textContent = 'Opening secure checkout…';
     checkout.disabled = true;
 
     const selectedHours = Number(hours.value);
-    const productionHost = location.hostname === 'mixedbyrashid.netlify.app';
-
     try {
-      if(productionHost){
-        const url = liveCheckoutUrl(selectedHours);
-        if(!url) throw new Error('Checkout is unavailable for that session length.');
-        window.location.href = url;
-        return;
-      }
-
       const response = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: {'content-type':'application/json'},
@@ -206,8 +177,8 @@
           email: email.value.trim() || undefined
         })
       });
-      const data = await response.json();
-      if(!response.ok) throw new Error(data.error || 'Checkout is unavailable.');
+      const data = await response.json().catch(() => ({}));
+      if(!response.ok || !data.checkout_url) throw new Error(data.error || 'Checkout is unavailable.');
       window.location.href = data.checkout_url;
     } catch(error) {
       status.textContent = error.message;
@@ -216,25 +187,54 @@
   });
 
   const query = new URLSearchParams(location.search);
+  const recheck = document.getElementById('recheck-deposit');
+  function openSchedule(paidHours){
+    hours.value = String(paidHours);
+    hours.disabled = true;
+    render();
+    const scheduling = schedulerFor(paidHours);
+    scheduleLink.href = scheduling.url;
+    scheduleLink.textContent = scheduling.label;
+    document.getElementById('schedule-title').textContent = scheduling.title;
+    document.getElementById('schedule-copy').textContent = scheduling.copy;
+    if(scheduling.external){
+      scheduleLink.target = '_blank';
+      scheduleLink.rel = 'noopener';
+    }else{
+      scheduleLink.removeAttribute('target');
+      scheduleLink.removeAttribute('rel');
+    }
+    status.textContent = 'Deposit verified. Choose your session time below.';
+    schedule.classList.add('show');
+    schedule.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  async function verifyDeposit(reference){
+    checkout.disabled = true;
+    recheck.hidden = true;
+    status.textContent = 'Checking your deposit…';
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        const response = await fetch('/api/studio-deposit-status?session_id=' + encodeURIComponent(reference), {cache:'no-store'});
+        if (response.status === 400) break;
+        if (response.ok) {
+          const data = await response.json();
+          if (data.paid) { openSchedule(data.hours); return; }
+        }
+      } catch {}
+      if (attempt < 5) await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    status.textContent = 'We are still waiting for payment confirmation. If you paid, check again in a moment.';
+    recheck.hidden = false;
+  }
+
   if(query.get('checkout') === 'success'){
-    const paidHours = Number(query.get('hours') || hours.value);
-    if(Number.isInteger(paidHours) && paidHours >= 2 && paidHours <= 12){
-      hours.value = String(paidHours);
-      render();
-      const scheduling = schedulerFor(paidHours);
-      scheduleLink.href = scheduling.url;
-      scheduleLink.textContent = scheduling.label;
-      document.getElementById('schedule-title').textContent = scheduling.title;
-      document.getElementById('schedule-copy').textContent = scheduling.copy;
-      if(scheduling.external){
-        scheduleLink.target = '_blank';
-        scheduleLink.rel = 'noopener';
-      }else{
-        scheduleLink.removeAttribute('target');
-        scheduleLink.removeAttribute('rel');
-      }
-      schedule.classList.add('show');
-      schedule.scrollIntoView({behavior:'smooth', block:'start'});
+    const reference = query.get('session_id');
+    if (reference) {
+      recheck.addEventListener('click', () => verifyDeposit(reference));
+      verifyDeposit(reference);
+    } else {
+      status.textContent = 'If you paid using an older checkout link, contact MixedByRashid to schedule your session.';
     }
   } else if(query.get('checkout') === 'cancelled'){
     status.textContent = 'Checkout was cancelled. Nothing was charged.';

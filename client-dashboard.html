@@ -17,11 +17,11 @@
 <main class="shell portal-main">
 <header class="portal-header">
 <div><div class="eyebrow">Client Portal</div><h1>Your projects.</h1><p>Payments, private uploads, review notes, revisions, and delivery stay connected to the same order.</p></div>
-<div class="project-picker"><label for="projectSelect">Project</label><select id="projectSelect"><option>Loading…</option></select></div>
+<div class="project-picker"><label for="projectSelect">Project</label><select id="projectSelect"><option>Loading…</option></select><button class="btn secondary" id="refreshProjects" type="button">Refresh projects</button></div>
 </header>
 
 <div id="errorBox" class="error-box hidden"></div>
-<section id="emptyState" class="portal-panel empty-state hidden"><h2>No paid projects yet</h2><p>Use the same email at checkout and in your portal account. New paid orders will appear here automatically.</p><a class="btn" href="/#services">Choose a service</a></section>
+<section id="emptyState" class="portal-panel empty-state hidden"><h2>No paid projects yet</h2><p>Use the same email at checkout and in your portal account. If you just paid, refresh your projects in a moment while payment is verified.</p><a class="btn" href="/#services">Choose a service</a></section>
 
 <div id="dashboard" class="hidden">
 <section class="status-grid" aria-label="Project summary">
@@ -192,6 +192,10 @@ async function downloadFile(orderId,fileId){
 }
 
 select.addEventListener('change',()=>{history.replaceState({},'',location.pathname+'?order_id='+encodeURIComponent(select.value));renderCurrent()});
+document.getElementById('refreshProjects').addEventListener('click',async event=>{
+  const button=event.currentTarget;button.disabled=true;
+  try{await loadProjects()}catch(e){showError(e.message)}finally{button.disabled=false}
+});
 loadProjects().catch(e=>showError(e.message));
 </script>
 </body>

@@ -4,8 +4,9 @@
 /forgot-password /forgot-password.html    200
 /reset-password  /reset-password.html     200
 /book       /booking.html           200
-/mixing     /mixing-intake.html     200
-/mastering  /mastering-intake.html  200
+/order      /order.html             200
+/mixing     /order?service=mixing   302
+/mastering  /order?service=mastering 302
 /client     /client-dashboard.html  200
 /admin      /admin-dashboard.html   200
 /review     /mix-review.html        200

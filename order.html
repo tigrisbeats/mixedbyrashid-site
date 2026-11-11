@@ -16,6 +16,7 @@
 .order-status{min-height:24px;margin:0;color:var(--muted);font-size:14px}.order-help{font-size:13px;color:var(--muted)}
 .order-form button{font:inherit;font-weight:850;cursor:pointer}.order-form button:disabled{opacity:.55;cursor:default}
 .order-next li{margin:0 0 18px;padding-left:4px}.order-next p{color:var(--muted)}
+.order-form [hidden]{display:none}
 :focus-visible{outline:2px solid white;outline-offset:4px}
 </style>
 </head>
@@ -33,12 +34,13 @@
 <form id="order-form" class="order-form">
 <label for="service">Service</label>
 <select id="service" name="service"><option value="mixing">Mixing — $50/song</option><option value="mastering">Mastering — $20/song</option></select>
-<label for="quantity">Number of songs</label>
+<label id="quantity-label" for="quantity">Number of songs</label>
 <input id="quantity" name="quantity" type="number" min="1" max="50" step="1" value="1" inputmode="numeric" required>
 <label for="email">Email for your receipt and portal</label>
 <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" aria-describedby="email-help" required>
 <p class="order-help" id="email-help">Use this same email when you sign in or create your client portal account after payment.</p>
-<div class="order-summary"><span>Total due now</span><strong id="total">$50</strong></div>
+<div class="order-summary"><span id="price-label">Total due now</span><strong id="total">$50</strong></div>
+<p class="order-help" id="stripe-quantity" hidden>Choose your number of songs at checkout. Stripe will show your full total before you pay.</p>
 <label class="agreement"><input type="checkbox" required><span>I agree to the <a href="/policies" target="_blank" rel="noopener">service policies</a>. Turnaround begins after payment and all required files are received.</span></label>
 <button class="btn primary" id="checkout" type="submit" disabled>Continue to Secure Checkout</button>
 <p class="order-status" id="status" role="status" aria-live="polite">Checking checkout availability…</p>
@@ -86,7 +88,17 @@
   render();
   fetch('/api/service-status', {cache:'no-store'})
     .then(async response => {
-      if (!response.ok || !(await response.json()).audio_orders_ready) throw new Error();
+      const availability = await response.json();
+      if (!response.ok || !availability.audio_orders_ready) throw new Error();
+      if (availability.hosted_checkout) {
+        quantity.value = '1';
+        quantity.hidden = true;
+        quantity.disabled = true;
+        document.getElementById('quantity-label').hidden = true;
+        document.getElementById('price-label').textContent = 'Price per song';
+        document.getElementById('stripe-quantity').hidden = false;
+        render();
+      }
       checkout.disabled = false;
       status.textContent = query.get('checkout') === 'cancelled'
         ? 'Checkout was cancelled. You can try again when you are ready.' : 'Secure payment through Stripe.';

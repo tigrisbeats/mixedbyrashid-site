@@ -10,6 +10,7 @@ import {
 } from '../lib/portal-rules.mjs';
 import { paymentRuntimeConfig, storageRuntimeConfig } from '../lib/runtime-config.mjs';
 import { audioOrdersEnabled, checkoutReadiness } from '../lib/checkout-readiness.mjs';
+import { livePaymentLink } from '../lib/live-payment-links.mjs';
 
 const json = (status, body) => Response.json(body, { status });
 const unavailable = 'Online checkout is temporarily unavailable. Please try again shortly.';
@@ -70,6 +71,9 @@ export function createCheckoutHandler({
         if (typeof body.quantity === 'boolean' || !Number.isInteger(quantity) || quantity < 1 || quantity > 50) {
           return json(400, { error: 'Quantity must be a whole number from 1 to 50.' });
         }
+        if (readiness.hosted_checkout && quantity !== 1) {
+          return json(400, { error: 'Choose your number of songs on the Stripe checkout page.' });
+        }
         amountCents = servicePriceCents(service, quantity);
         const label = service === 'mixing' ? 'Mixing' : 'Mastering';
         name = `MixedByRashid ${label} - ${quantity} ${quantity === 1 ? 'Song' : 'Songs'}`;
@@ -77,6 +81,12 @@ export function createCheckoutHandler({
         description = 'Paid upfront. Project begins after payment and required files are received.';
         successPath = '/client?checkout=success&session_id={CHECKOUT_SESSION_ID}';
         cancelPath = `/order?service=${service}&quantity=${quantity}&checkout=cancelled`;
+      }
+
+      if (readiness.hosted_checkout) {
+        const checkout_url = livePaymentLink(service, metadata.session_hours, email);
+        if (!checkout_url) return json(503, { error: unavailable });
+        return json(200, { checkout_url, amount_cents: amountCents, service, mode: 'live', provider: 'payment_link' });
       }
 
       const session = await createSession(runtime.secretKey, {

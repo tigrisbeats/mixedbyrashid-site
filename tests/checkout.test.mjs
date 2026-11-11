@@ -23,7 +23,7 @@ function setup(overrides = {}) {
 }
 
 test('no checkout sessions without payment verification and private audio storage', async () => {
-  for (const field of ['checkoutEnabled','checkoutConfigured','webhookEnabled','webhookConfigured']) {
+  for (const field of ['checkoutEnabled','webhookEnabled','webhookConfigured']) {
     const {handler, calls} = setup({runtimeConfig:() => ({...payment, [field]:false})});
     assert.equal((await handler(request({service:'studio',hours:2}))).status,503);
     assert.equal(calls.length,0);
@@ -36,7 +36,29 @@ test('no checkout sessions without payment verification and private audio storag
   }
   assert.equal(checkoutReadiness({...payment,context:'branch-deploy'},storage,true).checkout_ready,false);
   assert.equal(checkoutReadiness({...payment,context:'deploy-preview'},storage,true).checkout_ready,false);
+  assert.equal(checkoutReadiness({...payment,context:'deploy-preview',mode:'test',checkoutConfigured:false},storage,true).checkout_ready,false);
   assert.equal(checkoutReadiness(payment,storage,false).audio_orders_ready,false);
+});
+
+test('live hosted links keep checkout available with verification and use the Stripe quantity selector', async () => {
+  const {handler,calls} = setup({runtimeConfig:() => ({...payment,checkoutConfigured:false})});
+  for (const [body, price, host] of [
+    [{service:'studio',hours:2},6000,'book.stripe.com'],
+    [{service:'mixing',quantity:1,email:'artist@example.test'},5000,'buy.stripe.com'],
+    [{service:'mastering',quantity:1,email:'artist@example.test'},2000,'buy.stripe.com'],
+  ]) {
+    const response = await handler(request(body));
+    assert.equal(response.status,200);
+    const data = await response.json();
+    const url = new URL(data.checkout_url);
+    assert.equal(data.provider,'payment_link');
+    assert.equal(data.mode,'live');
+    assert.equal(data.amount_cents,price);
+    assert.equal(url.hostname,host);
+    if (body.email) assert.equal(url.searchParams.get('prefilled_email'),body.email);
+  }
+  assert.equal((await handler(request({service:'mixing',quantity:2,email:'artist@example.test'}))).status,400);
+  assert.equal(calls.length,0);
 });
 
 test('checkout calculates the approved charges and paid-order details on the server', async () => {

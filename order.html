@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order Mixing &amp; Mastering | MixedByRashid</title>
+<meta name="description" content="Order mixing or mastering, pay through Stripe, and upload your files in your private MixedByRashid client portal.">
+<meta name="theme-color" content="#09090b">
+<link rel="stylesheet" href="styles.css">
+<style>
+.order-hero{padding-bottom:20px}.order-hero h1{font-size:clamp(44px,8vw,78px);max-width:800px}
+.order-form{display:grid;gap:12px}.order-form label{font-weight:800}
+.order-form input:not([type=checkbox]),.order-form select{width:100%;min-height:52px;border:1px solid var(--line);border-radius:14px;background:#0d0d11;color:var(--text);padding:0 14px;font:inherit}
+.order-form .agreement{display:flex;align-items:flex-start;gap:10px;font-weight:400;font-size:14px;margin:8px 0}.agreement input{margin-top:5px;flex-shrink:0}.agreement a,.order-help a{text-decoration:underline}
+.order-summary{display:flex;justify-content:space-between;align-items:center;gap:16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px 0;margin:8px 0}.order-summary strong{font-size:34px}
+.order-status{min-height:24px;margin:0;color:var(--muted);font-size:14px}.order-help{font-size:13px;color:var(--muted)}
+.order-form button{font:inherit;font-weight:850;cursor:pointer}.order-form button:disabled{opacity:.55;cursor:default}
+.order-next li{margin:0 0 18px;padding-left:4px}.order-next p{color:var(--muted)}
+:focus-visible{outline:2px solid white;outline-offset:4px}
+</style>
+</head>
+<body>
+<nav><div class="shell nav-inner"><a class="brand" href="/">Mixed<span>By</span>Rashid</a><a class="btn secondary" href="/client">Client Portal</a></div></nav>
+<main>
+<section class="hero shell order-hero">
+<div class="eyebrow">Mixing &amp; Mastering • Paid Upfront</div>
+<h1>LET’S FINISH YOUR RECORD.</h1>
+<p class="lede">Choose your service, pay securely, then send your files through your private client portal.</p>
+</section>
+<section class="section shell split">
+<div class="panel">
+<h2>Your order</h2>
+<form id="order-form" class="order-form">
+<label for="service">Service</label>
+<select id="service" name="service"><option value="mixing">Mixing — $50/song</option><option value="mastering">Mastering — $20/song</option></select>
+<label for="quantity">Number of songs</label>
+<input id="quantity" name="quantity" type="number" min="1" max="50" step="1" value="1" inputmode="numeric" required>
+<label for="email">Email for your receipt and portal</label>
+<input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" placeholder="you@example.com" aria-describedby="email-help" required>
+<p class="order-help" id="email-help">Use this same email when you sign in or create your client portal account after payment.</p>
+<div class="order-summary"><span>Total due now</span><strong id="total">$50</strong></div>
+<label class="agreement"><input type="checkbox" required><span>I agree to the <a href="/policies" target="_blank" rel="noopener">service policies</a>. Turnaround begins after payment and all required files are received.</span></label>
+<button class="btn primary" id="checkout" type="submit" disabled>Continue to Secure Checkout</button>
+<p class="order-status" id="status" role="status" aria-live="polite">Checking checkout availability…</p>
+<p class="order-help">Questions? <a href="mailto:Tigrisbeats@gmail.com">Contact MixedByRashid</a>.</p>
+</form>
+</div>
+<aside class="panel order-next">
+<h2>What happens next</h2>
+<ol>
+<li><strong>Pay through Stripe.</strong><p>Your order is paid in full before work begins.</p></li>
+<li><strong>Open your client portal.</strong><p>Sign in or create an account with your checkout email. Your project appears after payment is verified.</p></li>
+<li><strong>Upload your files.</strong><p id="file-guidance">Send consolidated WAV stems, your rough mix, reference tracks, and project notes.</p></li>
+<li><strong>Review and receive your music.</strong><p id="delivery-guidance">Mixing has a 3–5 day turnaround, with 2 revisions included.</p></li>
+</ol>
+<p class="order-help">Already paid? <a href="/client">Open your project</a>.</p>
+</aside>
+</section>
+</main>
+<footer class="shell"><strong>MixedByRashid</strong><br>Recording • Mixing • Mastering<br><br>© 2026 MixedByRashid. All rights reserved.</footer>
+<script>
+(() => {
+  const form = document.getElementById('order-form');
+  const service = document.getElementById('service');
+  const quantity = document.getElementById('quantity');
+  const checkout = document.getElementById('checkout');
+  const status = document.getElementById('status');
+  const query = new URLSearchParams(location.search);
+  if (['mixing', 'mastering'].includes(query.get('service'))) service.value = query.get('service');
+  const requestedQuantity = Number(query.get('quantity'));
+  if (Number.isInteger(requestedQuantity) && requestedQuantity >= 1 && requestedQuantity <= 50) quantity.value = String(requestedQuantity);
+  function render() {
+    const isMixing = service.value === 'mixing';
+    const count = Number(quantity.value);
+    document.getElementById('total').textContent = Number.isInteger(count) && count >= 1 && count <= 50
+      ? '$' + (count * (isMixing ? 50 : 20)).toLocaleString('en-US') : '—';
+    document.getElementById('file-guidance').textContent = isMixing
+      ? 'Send consolidated WAV stems, your rough mix, reference tracks, and project notes.'
+      : 'Send your final stereo mix as a WAV file, reference tracks, and release notes.';
+    document.getElementById('delivery-guidance').textContent = isMixing
+      ? 'Mixing has a 3–5 day turnaround, with 2 revisions included.'
+      : 'Mastering has a 1–3 day turnaround, with 1 revision included.';
+  }
+  service.addEventListener('change', render);
+  quantity.addEventListener('input', render);
+  render();
+  fetch('/api/service-status', {cache:'no-store'})
+    .then(async response => {
+      if (!response.ok || !(await response.json()).audio_orders_ready) throw new Error();
+      checkout.disabled = false;
+      status.textContent = query.get('checkout') === 'cancelled'
+        ? 'Checkout was cancelled. You can try again when you are ready.' : 'Secure payment through Stripe.';
+    })
+    .catch(() => { status.textContent = 'Checkout is temporarily unavailable. Please refresh this page in a moment.'; });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (checkout.disabled) return;
+    checkout.disabled = true;
+    status.textContent = 'Opening secure checkout…';
+    try {
+      const response = await fetch('/api/create-checkout', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body:JSON.stringify({service:service.value, quantity:Number(quantity.value), email:document.getElementById('email').value.trim()}),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.checkout_url) throw new Error(data.error || 'Checkout is unavailable. Please try again.');
+      window.location.assign(data.checkout_url);
+    } catch (error) {
+      status.textContent = error.message;
+      checkout.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

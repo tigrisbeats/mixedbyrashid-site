@@ -6,6 +6,7 @@ import { PGlite } from '@electric-sql/pglite';
 import Stripe from 'stripe';
 import { createStripeWebhookHandler } from '../netlify/lib/stripe-webhooks.mjs';
 import { handleStripeCheckoutEvent } from '../netlify/lib/stripe-orders.mjs';
+import { createStudioDepositStatus } from '../netlify/functions/studio-deposit-status.mjs';
 
 function event(overrides = {}, live = false) {
   return { id: `evt_${randomUUID()}`, type: 'checkout.session.completed', livemode: live,
@@ -49,6 +50,18 @@ test('signed checkout fulfillment respects paid state, receipts, duplicates and 
     assert.equal((await send(event({ currency: 'eur' }))).status, 500);
     assert.equal((await send(event({ amount_total: -1 }))).status, 500);
     assert.equal((await pg.query('select * from portal_orders')).rows.length, 1);
+
+    const studio = event({
+      id: `cs_test_${randomUUID().replaceAll('-', '')}`, amount_total:6000,
+      metadata:{service:'studio',session_hours:'2',session_total_cents:'12000'},
+    });
+    const status = createStudioDepositStatus({runtimeConfig:() => ({mode:'test'}),database:() => sql});
+    const deposit = () => status(new Request(`https://preview.example.test/api/studio-deposit-status?session_id=${studio.data.object.id}`));
+    assert.deepEqual(await (await deposit()).json(), {paid:false});
+    assert.equal((await send(studio)).status,200);
+    assert.deepEqual(await (await deposit()).json(), {paid:true,hours:2});
+    await pg.query("update portal_orders set project_status='cancelled' where stripe_checkout_session_id=$1", [studio.data.object.id]);
+    assert.deepEqual(await (await deposit()).json(), {paid:false});
   } finally { await pg.close(); }
 });
 

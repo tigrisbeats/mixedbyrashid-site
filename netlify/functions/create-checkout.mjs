@@ -1,188 +1,115 @@
 import Stripe from 'stripe';
 import { randomInt } from 'node:crypto';
-import { verifyRequestOrigin } from '@netlify/identity';
+import { verifyPortalMutation } from '../lib/auth.mjs';
 import {
   studioDepositCents,
   servicePriceCents,
   MIN_STUDIO_HOURS,
   MAX_AUTO_STUDIO_HOURS,
+  STUDIO_RATE_CENTS,
 } from '../lib/portal-rules.mjs';
-import { paymentRuntimeConfig } from '../lib/runtime-config.mjs';
+import { paymentRuntimeConfig, storageRuntimeConfig } from '../lib/runtime-config.mjs';
+import { audioOrdersEnabled, checkoutReadiness } from '../lib/checkout-readiness.mjs';
 
 const json = (status, body) => Response.json(body, { status });
+const unavailable = 'Online checkout is temporarily unavailable. Please try again shortly.';
 
-async function parseBody(request) {
-  try {
-    return await request.json();
-  } catch {
-    const error = new Error('Request body must be valid JSON.');
-    error.statusCode = 400;
-    throw error;
-  }
-}
+export function createCheckoutHandler({
+  runtimeConfig = paymentRuntimeConfig,
+  storageConfig = storageRuntimeConfig,
+  audioEnabled = audioOrdersEnabled,
+  createSession = (key, params) => new Stripe(key).checkout.sessions.create(params),
+} = {}) {
+  return async (request) => {
+    if (request.method !== 'POST') return json(405, { error: 'Method not allowed.' });
+    try { verifyPortalMutation(request); }
+    catch { return json(403, { error: 'Request origin is not allowed.' }); }
 
-function audioServiceEnabled(runtime, service) {
-  if (!['mixing', 'mastering'].includes(service)) return true;
-  if (runtime.context !== 'production') return true;
-  return Netlify.env.get('MIXING_ENABLED') === 'true';
-}
-
-export default async (request) => {
-  try {
-    if (request.method !== 'POST') {
-      return json(405, { error: 'Method not allowed.' });
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return json(400, { error: 'Request body must be a JSON object.' });
     }
-
-    verifyRequestOrigin(request);
-
-    const runtime = paymentRuntimeConfig();
-
-    if (!runtime.checkoutEnabled) {
-      return json(503, {
-        error: runtime.context === 'production'
-          ? 'Online payments are not enabled yet.'
-          : 'Stripe sandbox checkout is disabled in this context.',
-      });
-    }
-
-    if (!runtime.checkoutConfigured) {
-      return json(503, {
-        error: runtime.context === 'production'
-          ? 'Production payments are not fully configured.'
-          : 'Stripe sandbox is not fully configured.',
-      });
-    }
-
-    const stripe = new Stripe(runtime.secretKey);
-    const body = await parseBody(request);
-    const service = String(body.service || '').trim();
-    const email = String(body.email || '').trim() || undefined;
-    const baseUrl = new URL(request.url).origin;
-
-    if (!audioServiceEnabled(runtime, service)) {
-      return json(503, {
-        error: 'Online mixing and mastering orders are not enabled yet.',
-      });
-    }
-
-    let amountCents;
-    let name;
-    let successPath;
-    let metadata = { service, checkout_mode: runtime.mode };
-
-    if (service === 'studio') {
-      const hours = Number(body.hours);
-
-      if (
-        !Number.isInteger(hours) ||
-        hours < MIN_STUDIO_HOURS ||
-        hours > MAX_AUTO_STUDIO_HOURS
-      ) {
-        return json(400, {
-          error:
-            `Studio hours must be a whole number from ${MIN_STUDIO_HOURS} to ${MAX_AUTO_STUDIO_HOURS}.`,
-        });
-      }
-
-      amountCents = studioDepositCents(hours);
-      const sessionTotalCents = hours * 6000;
-      name = `MixedByRashid Studio Deposit - ${hours} Hours`;
-
-      metadata = {
-        service,
-        checkout_mode: runtime.mode,
-        session_hours: String(hours),
-        session_total_cents: String(sessionTotalCents),
-        deposit_cents: String(amountCents),
-        deposit_policy: 'non_refundable',
-      };
-
-      successPath =
-        `/book?checkout=success&hours=${hours}&session_id={CHECKOUT_SESSION_ID}`;
-    } else if (service === 'mixing' || service === 'mastering') {
-      const quantity = Number(body.quantity || 1);
-
-      if (
-        !Number.isInteger(quantity) ||
-        quantity < 1 ||
-        quantity > 50
-      ) {
-        return json(400, {
-          error: 'Quantity must be a whole number from 1 to 50.',
-        });
-      }
-
-      amountCents = servicePriceCents(service, quantity);
-      const includedRevisions = service === 'mixing' ? 2 : 1;
-      const label = service === 'mixing' ? 'Mixing' : 'Mastering';
-      const songWord = quantity === 1 ? 'Song' : 'Songs';
-
-      name = `MixedByRashid ${label} - ${quantity} ${songWord}`;
-      metadata = {
-        service,
-        checkout_mode: runtime.mode,
-        quantity: String(quantity),
-        included_revisions: String(includedRevisions),
-      };
-
-      successPath =
-        '/client?checkout=success&session_id={CHECKOUT_SESSION_ID}';
-    } else {
+    const service = body.service;
+    if (!['studio', 'mixing', 'mastering'].includes(service)) {
       return json(400, { error: 'Unsupported service.' });
     }
-
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      integration_identifier: `mixedbyrashid_${Array.from({ length: 8 }, () => String.fromCharCode(97 + randomInt(26))).join('')}`,
-      customer_email: email,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: 'usd',
-            unit_amount: amountCents,
-            product_data: {
-              name,
-              description:
-                service === 'studio'
-                  ? 'Non-refundable studio booking deposit. Applies toward the selected session total.'
-                  : 'Paid upfront. Project begins after payment and required files are received.',
-            },
-          },
-        },
-      ],
-      metadata,
-      payment_intent_data: { metadata },
-      success_url: `${baseUrl}${successPath}`,
-      cancel_url:
-        service === 'studio'
-          ? `${baseUrl}/book?checkout=cancelled`
-          : `${baseUrl}/?checkout=cancelled`,
-    });
-
-    if (session.livemode !== (runtime.mode === 'live')) {
-      throw new Error('Stripe returned a session in an unexpected mode.');
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    if ((service !== 'studio' && !email) ||
+        (email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))) {
+      return json(400, { error: 'Enter a valid email address for your receipt and client portal.' });
     }
 
-    return json(200, {
-      checkout_url: session.url,
-      session_id: session.id,
-      amount_cents: amountCents,
-      service,
-      mode: runtime.mode,
-      metadata,
-    });
-  } catch (error) {
-    console.error('create-checkout', error);
+    try {
+      const runtime = runtimeConfig();
+      const readiness = checkoutReadiness(runtime, storageConfig(), audioEnabled(runtime));
+      if (!readiness.checkout_ready || (service !== 'studio' && !readiness.audio_orders_ready)) {
+        return json(503, { error: unavailable });
+      }
+      const baseUrl = new URL(request.url).origin;
+      const metadata = { service, checkout_mode: runtime.mode };
+      let amountCents, name, successPath, cancelPath, description;
 
-    return json(error.statusCode || 500, {
-      error: error.statusCode
-        ? error.message
-        : 'Unable to create Stripe checkout.',
-    });
-  }
-};
+      if (service === 'studio') {
+        const hours = Number(body.hours);
+        if (!Number.isInteger(hours) || hours < MIN_STUDIO_HOURS || hours > MAX_AUTO_STUDIO_HOURS) {
+          return json(400, { error: `Studio hours must be a whole number from ${MIN_STUDIO_HOURS} to ${MAX_AUTO_STUDIO_HOURS}.` });
+        }
+        amountCents = studioDepositCents(hours);
+        name = `MixedByRashid Studio Deposit - ${hours} Hours`;
+        Object.assign(metadata, {
+          session_hours: String(hours),
+          session_total_cents: String(hours * STUDIO_RATE_CENTS),
+          deposit_cents: String(amountCents),
+          deposit_policy: 'non_refundable',
+        });
+        description = 'Non-refundable studio booking deposit. Applies toward the selected session total.';
+        successPath = '/book?checkout=success&session_id={CHECKOUT_SESSION_ID}';
+        cancelPath = '/book?checkout=cancelled';
+      } else {
+        const quantity = Number(body.quantity ?? 1);
+        if (typeof body.quantity === 'boolean' || !Number.isInteger(quantity) || quantity < 1 || quantity > 50) {
+          return json(400, { error: 'Quantity must be a whole number from 1 to 50.' });
+        }
+        amountCents = servicePriceCents(service, quantity);
+        const label = service === 'mixing' ? 'Mixing' : 'Mastering';
+        name = `MixedByRashid ${label} - ${quantity} ${quantity === 1 ? 'Song' : 'Songs'}`;
+        Object.assign(metadata, { quantity: String(quantity), included_revisions: service === 'mixing' ? '2' : '1' });
+        description = 'Paid upfront. Project begins after payment and required files are received.';
+        successPath = '/client?checkout=success&session_id={CHECKOUT_SESSION_ID}';
+        cancelPath = `/order?service=${service}&quantity=${quantity}&checkout=cancelled`;
+      }
 
-export const config = {
-  path: '/api/create-checkout',
-};
+      const session = await createSession(runtime.secretKey, {
+        mode: 'payment',
+        integration_identifier: `mixedbyrashid_${Array.from({ length: 8 }, () => String.fromCharCode(97 + randomInt(26))).join('')}`,
+        customer_email: email || undefined,
+        line_items: [{
+          quantity: 1,
+          price_data: { currency: 'usd', unit_amount: amountCents, product_data: { name, description } },
+        }],
+        metadata,
+        payment_intent_data: { metadata },
+        success_url: `${baseUrl}${successPath}`,
+        cancel_url: `${baseUrl}${cancelPath}`,
+      });
+
+      if (session.livemode !== (runtime.mode === 'live') || !session.url) {
+        throw new Error('Stripe returned an unusable session.');
+      }
+      return json(200, {
+        checkout_url: session.url,
+        session_id: session.id,
+        amount_cents: amountCents,
+        service,
+        mode: runtime.mode,
+      });
+    } catch (error) {
+      console.error('create-checkout-failed', { type: error.type || 'CheckoutError', code: error.code || 'unknown' });
+      return json(503, { error: 'Unable to open secure checkout. Please try again shortly.' });
+    }
+  };
+}
+
+export default createCheckoutHandler();
+
+export const config = { path: '/api/create-checkout' };

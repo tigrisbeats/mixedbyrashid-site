@@ -39,7 +39,11 @@ jobs:
 
           page_ready=0
           for attempt in $(seq 1 18); do
-            if curl -fsS -o /tmp/login.html "$BASE/login" \
+            if curl -fsS -o /tmp/order.html "$BASE/order?service=mixing" \
+              && grep -q 'id="order-form"' /tmp/order.html \
+              && curl -fsS -o /tmp/service-status.json "$BASE/api/service-status" \
+              && grep -q '"audio_orders_ready":true' /tmp/service-status.json \
+              && curl -fsS -o /tmp/login.html "$BASE/login" \
               && grep -q "Open your project" /tmp/login.html \
               && grep -q 'id="nextPath"' /tmp/login.html; then
               page_ready=1
@@ -50,7 +54,7 @@ jobs:
           done
 
           if [ "$page_ready" != "1" ]; then
-            echo "The current login page did not become available."
+            echo "The current checkout and login pages did not become available."
             exit 1
           fi
 
@@ -72,8 +76,8 @@ jobs:
           test "$project_code" = "401"
 
           curl -fsS -o /tmp/home.html "$BASE/"
-          grep -q "Request Mixing" /tmp/home.html
-          grep -q "Request Mastering" /tmp/home.html
+          grep -q "Order Mixing" /tmp/home.html
+          grep -q "Order Mastering" /tmp/home.html
           ! grep -q "4gM6oI5u91dS1aH0Cy4wM01" /tmp/home.html
           ! grep -q "00waEY6ydcWA2eLclg4wM02" /tmp/home.html
 
@@ -86,12 +90,13 @@ jobs:
             -H "Origin: $BASE" \
             -H "Referer: $BASE/" \
             -H "Content-Type: application/json" \
-            -o /tmp/checkout-disabled.json \
+            -o /tmp/checkout-invalid.json \
             -w "%{http_code}" \
             -X POST \
-            --data '{"service":"studio","hours":2}' \
+            --data '{"service":"invalid-smoke-check"}' \
             "$BASE/api/create-checkout" || true)
-          test "$checkout_code" = "503"
+          test "$checkout_code" = "400"
+          grep -q "Unsupported service" /tmp/checkout-invalid.json
 
           webhook_code=$(curl -sS \
             -H "Content-Type: application/json" \

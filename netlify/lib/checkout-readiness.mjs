@@ -5,15 +5,17 @@ export function audioOrdersEnabled(payment) {
 }
 
 export function checkoutReadiness(payment, storage, audioEnabled) {
+  const production = payment.context === 'production' && payment.mode === 'live';
+  const hosted_checkout = production && !payment.checkoutConfigured;
   const checkout_ready = Boolean(
-    ((payment.context === 'production' && payment.mode === 'live') ||
-      (payment.context === 'deploy-preview' && payment.mode === 'test')) &&
-    payment.checkoutEnabled && payment.checkoutConfigured &&
+    (production || (payment.context === 'deploy-preview' && payment.mode === 'test')) &&
+    payment.checkoutEnabled && (payment.checkoutConfigured || hosted_checkout) &&
     payment.webhookEnabled && payment.webhookConfigured
   );
   return {
     checkout_ready,
     audio_orders_ready: Boolean(checkout_ready && audioEnabled && storage.enabled && storage.configured),
+    hosted_checkout,
   };
 }
 

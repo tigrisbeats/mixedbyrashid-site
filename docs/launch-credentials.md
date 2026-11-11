@@ -4,7 +4,7 @@ Never commit credential values to Git. Store them only in Netlify environment va
 
 ## Production launch switches
 
-- `PAYMENTS_ENABLED=true` enables production Checkout Sessions when the live API key and webhook signing secret are also configured.
+- `PAYMENTS_ENABLED=true` enables production checkout when the live webhook is configured. Existing Stripe Payment Links are used if the live Checkout Sessions key is unavailable.
 - `STRIPE_LIVE_WEBHOOK_ENABLED=true` allows verified Stripe completion events to create/update portal orders.
 - `MIXING_ENABLED=true` enables mixing and mastering orders after private storage verification.
 - `PRIVATE_STORAGE_ENABLED=true` enables the verified Dropbox file workflow.
@@ -31,7 +31,7 @@ Events:
 
 Required before enabling payments:
 
-- `STRIPE_LIVE_SECRET_KEY` — secret, production context.
+- `STRIPE_LIVE_SECRET_KEY` — optional for custom Checkout Sessions; secret, production context.
 - `STRIPE_LIVE_SIGNING_SECRET` — secret, production context.
 - `STRIPE_LIVE_WEBHOOK_ENABLED=true` after the live webhook signing secret is configured and verified.
 - `PAYMENTS_ENABLED=true` enables the website's studio, mixing, and mastering Checkout Sessions.
@@ -77,7 +77,7 @@ The Dropbox OAuth authorization must request offline access so the token exchang
 1. Verify Stripe sandbox Checkout -> signed webhook -> `portal_orders` paid/ready state.
 2. Verify Dropbox project provisioning -> file request -> file listing -> temporary link -> cleanup.
 3. Stripe live webhook signing is configured and the endpoint is enabled.
-4. Keep `STRIPE_LIVE_WEBHOOK_ENABLED=true`. Custom checkout remains closed if webhook signing is not configured.
+4. Keep `STRIPE_LIVE_WEBHOOK_ENABLED=true`. Checkout on the website remains closed if webhook signing is not configured.
 5. Enable `PAYMENTS_ENABLED=true` in production.
 6. Set `PRIVATE_STORAGE_ENABLED=true` after storage verification.
 7. Set `MIXING_ENABLED=true` only when the complete mixing/mastering intake and delivery path is ready for customers.
